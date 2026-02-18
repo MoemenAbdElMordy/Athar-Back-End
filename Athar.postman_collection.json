@@ -1,0 +1,1343 @@
+{
+  "info": {
+    "_postman_id": "2e6c4a4a-4f15-4c9e-9b5d-1b3f6a0e3a2c",
+    "name": "Athar Back-End APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "User API (Sanctum)",
+      "item": [
+        {
+          "name": "Auth - Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Optional\",\n  \"full_name\": \"Optional\",\n  \"email\": \"user@test.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"phone\": \"Optional\",\n  \"disability_type\": \"Optional\",\n  \"mobility_aids\": \"Optional\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@test.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Place Submissions - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Place\",\n  \"address\": \"Test Address\",\n  \"lat\": 30.0444,\n  \"lng\": 31.2357,\n  \"category_id\": 1,\n  \"notes\": \"optional\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/place-submissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "place-submissions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Flags - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flaggable_type\": \"location\",\n  \"flaggable_id\": {{location_id}},\n  \"reason\": \"spam\",\n  \"details\": \"optional\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/flags",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "flags"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Help Requests - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"urgency_level\": \"high\",\n  \"assistance_type\": \"wheelchair\",\n  \"details\": \"optional\",\n  \"from_name\": \"Pickup\",\n  \"from_lat\": 30.0444,\n  \"from_lng\": 31.2357,\n  \"to_name\": \"Destination\",\n  \"to_lat\": 30.05,\n  \"to_lng\": 31.24,\n  \"name\": \"optional\",\n  \"phone\": \"optional\",\n  \"location_text\": \"optional\",\n  \"lat\": 30.0444,\n  \"lng\": 31.2357,\n  \"message\": \"optional\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/help-requests",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "help-requests"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('help_request_id', String(json.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin API (Session Cookie)",
+      "description": "Admin endpoints use web session (cookies). In Postman: call /admin/login first, then cookies will be used automatically for protected routes.",
+      "item": [
+        {
+          "name": "Auth - Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "logout"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "dashboard"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Notifications - List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/notifications?status=unread",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "unread"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = (json && json.data && json.data.length) ? json.data[0] : null;",
+                  "  if (first && first.id) pm.collectionVariables.set('notification_id', String(first.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notifications - Mark Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/notifications/{{notification_id}}/read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "notifications",
+                "{{notification_id}}",
+                "read"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Notifications - Read All",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/notifications/read-all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "notifications",
+                "read-all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Help Requests - List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/help-requests?status=all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "help-requests"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = (json && json.data && json.data.length) ? json.data[0] : null;",
+                  "  if (first && first.id) pm.collectionVariables.set('help_request_id', String(first.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Help Requests - Show",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/help-requests/{{help_request_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "help-requests",
+                "{{help_request_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Help Requests - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"assigned_admin_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/help-requests/{{help_request_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "help-requests",
+                "{{help_request_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Help Requests - Resolve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/help-requests/{{help_request_id}}/resolve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "help-requests",
+                "{{help_request_id}}",
+                "resolve"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Governments - List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/governments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "governments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Governments - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cairo\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/governments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "governments"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = (json && json.data && json.data.length) ? json.data[0] : (Array.isArray(json) && json.length ? json[0] : null);",
+                  "  if (first && first.id) pm.collectionVariables.set('government_id', String(first.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Locations - List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/locations?search=&government_id={{government_id}}&category_id={{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "locations"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "government_id",
+                  "value": "{{government_id}}"
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = (json && json.data && json.data.length) ? json.data[0] : null;",
+                  "  if (first && first.id) pm.collectionVariables.set('location_id', String(first.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Locations - Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/locations/{{location_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "locations",
+                "{{location_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Locations - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Place name\",\n  \"address\": \"Place address\",\n  \"government_id\": 1,\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357,\n  \"category_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/locations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "locations"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('location_id', String(json.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Locations - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated name\",\n  \"address\": \"Updated address\",\n  \"government_id\": 1,\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357,\n  \"category_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/locations/{{location_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "locations",
+                "{{location_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Locations - Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/locations/{{location_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "locations",
+                "{{location_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accessibility Report - Upsert",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verified\": true,\n  \"wide_entrance\": true,\n  \"wheelchair_accessible\": true,\n  \"elevator_available\": false,\n  \"ramp_available\": true,\n  \"parking\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/locations/{{location_id}}/accessibility-report",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "locations",
+                "{{location_id}}",
+                "accessibility-report"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Categories - List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "categories"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = (json && json.data && json.data.length) ? json.data[0] : null;",
+                  "  if (first && first.id) pm.collectionVariables.set('category_id', String(first.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categories - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Category name\",\n  \"icon\": \"optional-icon\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "categories"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('category_id', String(json.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categories - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated category name\",\n  \"icon\": \"updated-icon\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/categories/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Categories - Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/categories/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Place Submissions - List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/place-submissions?status=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "place-submissions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = (json && json.data && json.data.length) ? json.data[0] : null;",
+                  "  if (first && first.id) pm.collectionVariables.set('place_submission_id', String(first.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Place Submissions - Approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"create_location\": true,\n  \"government_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/place-submissions/{{place_submission_id}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "place-submissions",
+                "{{place_submission_id}}",
+                "approve"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Place Submissions - Reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejection_reason\": \"Reason here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/place-submissions/{{place_submission_id}}/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "place-submissions",
+                "{{place_submission_id}}",
+                "reject"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Flags - List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/flags?status=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "flags"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = (json && json.data && json.data.length) ? json.data[0] : null;",
+                  "  if (first && first.id) pm.collectionVariables.set('flag_id', String(first.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Flags - Request Info",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"optional\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/flags/{{flag_id}}/request-info",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "flags",
+                "{{flag_id}}",
+                "request-info"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Flags - Dismiss",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"optional\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/flags/{{flag_id}}/dismiss",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "flags",
+                "{{flag_id}}",
+                "dismiss"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Flags - Resolve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/flags/{{flag_id}}/resolve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "flags",
+                "{{flag_id}}",
+                "resolve"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Tutorials - List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/tutorials?search=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "tutorials"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = (json && json.data && json.data.length) ? json.data[0] : null;",
+                  "  if (first && first.id) pm.collectionVariables.set('tutorial_id', String(first.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tutorials - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Wheelchair tips\",\n  \"description\": \"optional\",\n  \"video_url\": null,\n  \"thumbnail_url\": null,\n  \"category\": null,\n  \"is_published\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/tutorials",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "tutorials"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('tutorial_id', String(json.id));",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tutorials - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated title\",\n  \"description\": \"optional\",\n  \"video_url\": null,\n  \"thumbnail_url\": null,\n  \"category\": null,\n  \"is_published\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/tutorials/{{tutorial_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "tutorials",
+                "{{tutorial_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Tutorials - Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/tutorials/{{tutorial_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "tutorials",
+                "{{tutorial_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
