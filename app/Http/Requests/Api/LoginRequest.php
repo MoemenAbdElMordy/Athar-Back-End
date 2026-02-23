@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests\Api;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class LoginRequest extends FormRequest
+class LoginRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {

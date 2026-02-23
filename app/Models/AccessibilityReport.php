@@ -15,7 +15,22 @@ class AccessibilityReport extends Model
         'elevator_available',
         'ramp_available',
         'parking',
+        'accessible_toilet',
+        'notes',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'verified' => 'boolean',
+            'wide_entrance' => 'boolean',
+            'wheelchair_accessible' => 'boolean',
+            'elevator_available' => 'boolean',
+            'ramp_available' => 'boolean',
+            'parking' => 'boolean',
+            'accessible_toilet' => 'boolean',
+        ];
+    }
 
     public function location(): BelongsTo
     {

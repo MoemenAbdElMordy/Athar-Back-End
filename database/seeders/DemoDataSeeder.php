@@ -24,6 +24,7 @@ class DemoDataSeeder extends Seeder
         $targetGovernments = 10;
         $targetCategories = 8;
         $targetVolunteers = 40;
+        $targetPendingVolunteerRequests = 10;
         $targetUsers = 60;
         $targetLocations = 140;
         $targetHelpRequests = 120;
@@ -120,6 +121,20 @@ class DemoDataSeeder extends Seeder
 
         $volunteers = $volunteerQuery->inRandomOrder()->limit($targetVolunteers)->get();
         $users = $userQuery->inRandomOrder()->limit($targetUsers)->get();
+
+        $pendingVolunteerCount = User::query()
+            ->where('role', 'volunteer')
+            ->whereNull('role_verified_at')
+            ->count();
+
+        if ($pendingVolunteerCount < $targetPendingVolunteerRequests) {
+            User::factory($targetPendingVolunteerRequests - $pendingVolunteerCount)->create([
+                'role' => 'volunteer',
+                'role_locked' => false,
+                'role_verified_at' => null,
+                'is_active' => true,
+            ]);
+        }
 
         $locationNames = [
             'City Library',

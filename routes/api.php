@@ -1,20 +1,65 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AccessibilityContributionController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FlagController;
+use App\Http\Controllers\Api\GovernmentController;
 use App\Http\Controllers\Api\HelpRequestController;
+use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\PlaceSubmissionController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\RatingController;
+use App\Http\Controllers\Api\VolunteerController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/auth/register', [AuthController::class, 'register']);
-Route::post('/auth/login', [AuthController::class, 'login']);
+Route::middleware('json.accept')->group(function (): void {
+    Route::post('/auth/register', [AuthController::class, 'registerUser']);
+    Route::post('/auth/register-user', [AuthController::class, 'registerUser']);
+    Route::post('/auth/register-volunteer', [AuthController::class, 'registerVolunteer']);
+    Route::post('/auth/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/me', [AuthController::class, 'me']);
-    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/governments', [GovernmentController::class, 'index']);
+    Route::get('/locations', [LocationController::class, 'index']);
+    Route::get('/locations/nearby', [LocationController::class, 'nearby']);
+    Route::get('/locations/{id}', [LocationController::class, 'show']);
+    Route::get('/locations/{id}/ratings', [RatingController::class, 'index']);
 
-    Route::post('/place-submissions', [PlaceSubmissionController::class, 'store']);
-    Route::post('/flags', [FlagController::class, 'store']);
+    Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
 
-    Route::post('/help-requests', [HelpRequestController::class, 'store']);
+        Route::put('/profile', [ProfileController::class, 'update']);
+        Route::get('/profile/stats', [ProfileController::class, 'stats']);
+
+        Route::post('/locations/{id}/ratings', [RatingController::class, 'store']);
+
+        Route::post('/place-submissions', [PlaceSubmissionController::class, 'store']);
+        Route::get('/place-submissions/mine', [PlaceSubmissionController::class, 'mine']);
+
+        Route::post('/flags', [FlagController::class, 'store']);
+        Route::post('/locations/{id}/flags', [FlagController::class, 'storeForLocation']);
+        Route::get('/flags/mine', [FlagController::class, 'mine']);
+
+        Route::put('/locations/{id}/accessibility-report', [AccessibilityContributionController::class, 'upsert']);
+
+        Route::get('/help-requests/{id}/messages', [HelpRequestController::class, 'messages']);
+        Route::post('/help-requests/{id}/messages', [HelpRequestController::class, 'storeMessage']);
+
+        Route::middleware('api.role:user')->group(function (): void {
+            Route::post('/help-requests', [HelpRequestController::class, 'store']);
+            Route::get('/help-requests/mine', [HelpRequestController::class, 'mine']);
+            Route::post('/help-requests/{id}/cancel', [HelpRequestController::class, 'cancel']);
+        });
+
+        Route::middleware('api.role:volunteer')->group(function (): void {
+            Route::post('/help-requests/{id}/accept', [HelpRequestController::class, 'accept']);
+            Route::post('/help-requests/{id}/decline', [HelpRequestController::class, 'decline']);
+            Route::post('/help-requests/{id}/complete', [HelpRequestController::class, 'complete']);
+
+            Route::post('/volunteer/status', [VolunteerController::class, 'status']);
+            Route::get('/volunteer/incoming', [VolunteerController::class, 'incoming']);
+        });
+    });
 });

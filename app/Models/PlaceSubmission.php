@@ -21,6 +21,13 @@ class PlaceSubmission extends Model
         'rejection_reason',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'reviewed_at' => 'datetime',
+        ];
+    }
+
     public function submitter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'submitted_by');

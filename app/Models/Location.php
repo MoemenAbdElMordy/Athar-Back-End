@@ -19,6 +19,8 @@ class Location extends Model
         'latitude',
         'longitude',
         'category_id',
+        'average_rating',
+        'reviews_count',
     ];
 
     public function government(): BelongsTo
@@ -39,6 +41,11 @@ class Location extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function accessibilityContributions(): HasMany
+    {
+        return $this->hasMany(AccessibilityContribution::class);
     }
 
     public function favorites(): HasMany

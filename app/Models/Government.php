@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Government extends Model
 {
+    protected $fillable = [
+        'accessible_locations',
+    ];
+
     public function locations(): HasMany
     {
         return $this->hasMany(Location::class);

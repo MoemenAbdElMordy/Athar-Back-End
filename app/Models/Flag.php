@@ -20,6 +20,13 @@ class Flag extends Model
         'handled_at',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'handled_at' => 'datetime',
+        ];
+    }
+
     public function flagger(): BelongsTo
     {
         return $this->belongsTo(User::class, 'flagger_id');

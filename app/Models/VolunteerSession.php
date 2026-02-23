@@ -7,6 +7,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VolunteerSession extends Model
 {
+    protected $fillable = [
+        'user_id',
+        'is_live',
+        'started_at',
+        'ended_at',
+        'last_lat',
+        'last_lng',
+        'last_seen_at',
+    ];
+
     protected function casts(): array
     {
         return [

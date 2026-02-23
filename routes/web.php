@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminAccessibilityReportController;
+use App\Http\Controllers\Admin\AdminAccountController;
 use App\Http\Controllers\Admin\AdminCategoryController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminHelpRequestController;
@@ -60,5 +61,12 @@ Route::prefix('admin')->group(function () {
         Route::post('/flags/{id}/request-info', [AdminFlagController::class, 'requestInfo']);
         Route::post('/flags/{id}/dismiss', [AdminFlagController::class, 'dismiss']);
         Route::post('/flags/{id}/resolve', [AdminFlagController::class, 'resolve']);
+
+        Route::get('/accounts', [AdminAccountController::class, 'index']);
+        Route::post('/accounts/{id}/volunteer/approve', [AdminAccountController::class, 'approveVolunteer']);
+        Route::post('/accounts/{id}/volunteer/reject', [AdminAccountController::class, 'rejectVolunteer']);
+        Route::post('/accounts', [AdminAccountController::class, 'store']);
+        Route::put('/accounts/{id}', [AdminAccountController::class, 'update']);
+        Route::delete('/accounts/{id}', [AdminAccountController::class, 'destroy']);
     });
 });

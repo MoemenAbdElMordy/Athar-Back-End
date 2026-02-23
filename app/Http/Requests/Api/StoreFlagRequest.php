@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests\Api;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreFlagRequest extends FormRequest
+class StoreFlagRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {

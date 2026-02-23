@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests\Api;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class StorePlaceSubmissionRequest extends FormRequest
+class StorePlaceSubmissionRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {
@@ -16,8 +14,8 @@ class StorePlaceSubmissionRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:255'],
-            'lat' => ['required', 'numeric', 'between:-90,90'],
-            'lng' => ['required', 'numeric', 'between:-180,180'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'notes' => ['nullable', 'string'],
         ];

@@ -7,6 +7,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Message extends Model
 {
+    protected $fillable = [
+        'help_request_id',
+        'sender_id',
+        'receiver_id',
+        'message',
+        'read_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'read_at' => 'datetime',
+        ];
+    }
+
     public function helpRequest(): BelongsTo
     {
         return $this->belongsTo(HelpRequest::class);
