@@ -36,7 +36,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"User One\",\n  \"full_name\": \"User One\",\n  \"email\": \"user@test.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"user\",\n  \"phone\": \"+201000000000\"\n}"
+              "raw": "{\n  \"name\": \"User One\",\n  \"full_name\": \"User One\",\n  \"email\": \"user@test.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"user\",\n  \"phone\": \"+201000000000\",\n  \"city\": \"Cairo\",\n  \"disability_type\": \"visual\",\n  \"assistance_needs\": \"Need guidance in crowded areas\",\n  \"emergency_contact_name\": \"Omar Ali\",\n  \"emergency_contact_phone\": \"+201011122233\"\n}"
             }
           }
         },
@@ -67,7 +67,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"User One\",\n  \"full_name\": \"User One\",\n  \"email\": \"user@test.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"user\",\n  \"phone\": \"+201000000000\"\n}"
+              "raw": "{\n  \"name\": \"User One\",\n  \"full_name\": \"User One\",\n  \"email\": \"user@test.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"user\",\n  \"phone\": \"+201000000000\",\n  \"city\": \"Cairo\",\n  \"disability_type\": \"visual\",\n  \"assistance_needs\": \"Need guidance in crowded areas\",\n  \"emergency_contact_name\": \"Omar Ali\",\n  \"emergency_contact_phone\": \"+201011122233\"\n}"
             }
           }
         },
@@ -176,6 +176,11 @@
                 },
                 {
                   "key": "id_document",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "certification_document",
                   "type": "file",
                   "src": ""
                 }
@@ -715,7 +720,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Name\",\n  \"full_name\": \"Updated Full Name\",\n  \"phone\": \"01000000000\",\n  \"disability_type\": \"visual\",\n  \"mobility_aids\": \"cane\"\n}"
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"full_name\": \"Updated Full Name\",\n  \"email\": \"updated.user@test.com\",\n  \"phone\": \"01000000000\",\n  \"city\": \"Giza\",\n  \"disability_type\": \"visual\",\n  \"mobility_aids\": \"cane\",\n  \"assistance_needs\": \"Need short-distance guidance\",\n  \"emergency_contact_name\": \"Mona Samir\",\n  \"emergency_contact_phone\": \"+201055566677\"\n}"
             }
           }
         },
@@ -743,6 +748,41 @@
                 "profile",
                 "stats"
               ]
+            }
+          }
+        },
+        {
+          "name": "Locations - Report (Create Place + Rating + Accessibility)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/locations/report",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "report"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Place From Mobile\",\n  \"address\": \"Dokki, Giza, Egypt\",\n  \"government_id\": 1,\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357,\n  \"category_id\": 1,\n  \"rating\": 5,\n  \"comment\": \"Very accessible\",\n  \"ramp_available\": true,\n  \"elevator_available\": true,\n  \"parking\": true,\n  \"wheelchair_accessible\": true,\n  \"wide_entrance\": true,\n  \"accessible_toilet\": false,\n  \"notes\": \"Submitted from Add Place Report screen\"\n}"
             }
           }
         },
@@ -795,7 +835,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/help-requests/mine?status=pending&page=1&per_page=15",
+              "raw": "{{base_url}}/api/help-requests/mine?status=all&page=1&per_page=15",
               "host": [
                 "{{base_url}}"
               ],
@@ -807,7 +847,7 @@
               "query": [
                 {
                   "key": "status",
-                  "value": "pending"
+                  "value": "all"
                 },
                 {
                   "key": "page",
@@ -925,6 +965,107 @@
                   "key": "per_page",
                   "value": "15"
                 }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Volunteer - Active",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteer_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/volunteer/active?page=1&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "volunteer",
+                "active"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Volunteer - History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteer_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/volunteer/history?page=1&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "volunteer",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Volunteer - Impact",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteer_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/volunteer/impact",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "volunteer",
+                "impact"
               ]
             }
           }
@@ -1084,6 +1225,447 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"message\": \"I am nearby\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Auth - Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"password123\",\n  \"new_password\": \"newPassword123\",\n  \"new_password_confirmation\": \"newPassword123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Auth - Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/sessions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Delete Session",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/sessions/{{session_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions",
+                "{{session_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Delete Other Sessions",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/sessions/others",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions",
+                "others"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Notifications - List (Mobile)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/notifications?status=all&page=1&per_page=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Notification Preferences - Show",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/notification-preferences",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notification-preferences"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Notification Preferences - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/notification-preferences",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notification-preferences"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"push_enabled\": true,\n  \"email_enabled\": true,\n  \"sms_enabled\": false,\n  \"volunteer_requests\": true,\n  \"volunteer_accepted\": true,\n  \"location_updates\": true,\n  \"new_ratings\": true,\n  \"community_updates\": false,\n  \"marketing_emails\": false,\n  \"sound_enabled\": true,\n  \"vibration_enabled\": true,\n  \"quiet_hours_start\": \"23:00\",\n  \"quiet_hours_end\": \"07:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Privacy Settings - Show",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/privacy/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "privacy",
+                "settings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Privacy Settings - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/privacy/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "privacy",
+                "settings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location_sharing\": true,\n  \"profile_visibility\": true,\n  \"show_ratings\": true,\n  \"activity_status\": true,\n  \"two_factor_auth\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Privacy Data Export - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/privacy/data-export",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "privacy",
+                "data-export"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categories\": [\"profile\", \"assistance_history\", \"location_ratings\", \"account_settings\"],\n  \"format\": \"json\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Privacy Data Export - Show",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/privacy/data-export/{{data_export_request_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "privacy",
+                "data-export",
+                "{{data_export_request_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Support Tickets - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/support/tickets",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "support",
+                "tickets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Unable to update profile\",\n  \"message\": \"I cannot save my phone number from the app.\",\n  \"category\": \"technical\",\n  \"priority\": \"medium\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Profile - Upload Photo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/profile/photo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profile",
+                "photo"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Account - Delete (Deactivate)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/account",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "account"
+              ]
             }
           }
         }

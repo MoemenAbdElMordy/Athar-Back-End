@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\StorePlaceReportRequest;
+use App\Http\Resources\AccessibilityContributionResource;
 use App\Http\Resources\LocationResource;
 use App\Http\Resources\ReviewResource;
+use App\Models\AccessibilityContribution;
 use App\Models\Location;
+use App\Models\Review;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -125,6 +129,66 @@ class LocationController extends Controller
             'location' => new LocationResource($location),
             'ratings' => $this->paginatedData($ratings, ReviewResource::collection($ratings->getCollection())),
         ]);
+    }
+
+    public function storeReport(StorePlaceReportRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $result = DB::transaction(function () use ($request, $data) {
+            $location = Location::query()->create([
+                'name' => $data['name'],
+                'address' => $data['address'],
+                'government_id' => $data['government_id'],
+                'latitude' => $data['latitude'],
+                'longitude' => $data['longitude'],
+                'category_id' => $data['category_id'] ?? null,
+            ]);
+
+            $review = Review::query()->create([
+                'user_id' => $request->user()->id,
+                'location_id' => $location->id,
+                'rating' => $data['rating'],
+                'comment' => $data['comment'] ?? null,
+            ]);
+
+            $summary = Review::query()
+                ->where('location_id', $location->id)
+                ->selectRaw('COUNT(*) as count, AVG(rating) as avg_rating')
+                ->first();
+
+            $location->average_rating = round((float) ($summary?->avg_rating ?? 0), 2);
+            $location->reviews_count = (int) ($summary?->count ?? 0);
+            $location->save();
+
+            $contribution = AccessibilityContribution::query()->create([
+                'location_id' => $location->id,
+                'user_id' => $request->user()->id,
+                'wide_entrance' => (bool) ($data['wide_entrance'] ?? false),
+                'wheelchair_accessible' => (bool) ($data['wheelchair_accessible'] ?? false),
+                'elevator_available' => (bool) ($data['elevator_available'] ?? false),
+                'ramp_available' => (bool) ($data['ramp_available'] ?? false),
+                'parking' => (bool) ($data['parking'] ?? false),
+                'accessible_toilet' => (bool) ($data['accessible_toilet'] ?? false),
+                'notes' => $data['notes'] ?? null,
+                'status' => 'pending',
+                'verified_at' => null,
+                'verified_by_admin_id' => null,
+            ]);
+
+            return [$location, $review, $contribution];
+        });
+
+        /** @var Location $location */
+        [$location, $review, $contribution] = $result;
+
+        $location->load(['category', 'accessibilityReport']);
+
+        return $this->successResponse([
+            'location' => new LocationResource($location),
+            'rating' => new ReviewResource($review->load('user')),
+            'accessibility_contribution' => new AccessibilityContributionResource($contribution),
+        ], null, 201);
     }
 
     private function baseLocationQuery(): Builder

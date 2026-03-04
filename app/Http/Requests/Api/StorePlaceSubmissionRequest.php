@@ -9,6 +9,21 @@ class StorePlaceSubmissionRequest extends ApiFormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $categoryId = $this->input('category_id', $this->input('categoryId'));
+
+        if ($categoryId === '' || $categoryId === null || $categoryId === 'null') {
+            $categoryId = null;
+        } elseif (is_numeric($categoryId) && (int) $categoryId <= 0) {
+            $categoryId = null;
+        }
+
+        if ($this->has('category_id') || $this->has('categoryId')) {
+            $this->merge(['category_id' => $categoryId]);
+        }
+    }
+
     public function rules(): array
     {
         return [

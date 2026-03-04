@@ -2,14 +2,20 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AccessibilityContributionController;
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\DataExportRequestController;
 use App\Http\Controllers\Api\FlagController;
 use App\Http\Controllers\Api\GovernmentController;
 use App\Http\Controllers\Api\HelpRequestController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\NotificationPreferenceController;
 use App\Http\Controllers\Api\PlaceSubmissionController;
+use App\Http\Controllers\Api\PrivacySettingController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
+use App\Http\Controllers\Api\SupportTicketController;
 use App\Http\Controllers\Api\VolunteerController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,9 +35,26 @@ Route::middleware('json.accept')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::put('/auth/password', [AuthController::class, 'changePassword']);
+        Route::get('/auth/sessions', [AuthController::class, 'sessions']);
+        Route::delete('/auth/sessions/others', [AuthController::class, 'destroyOtherSessions']);
+        Route::delete('/auth/sessions/{id}', [AuthController::class, 'destroySession']);
 
         Route::put('/profile', [ProfileController::class, 'update']);
+        Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto']);
         Route::get('/profile/stats', [ProfileController::class, 'stats']);
+
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show']);
+        Route::put('/notification-preferences', [NotificationPreferenceController::class, 'update']);
+
+        Route::get('/privacy/settings', [PrivacySettingController::class, 'show']);
+        Route::put('/privacy/settings', [PrivacySettingController::class, 'update']);
+        Route::post('/privacy/data-export', [DataExportRequestController::class, 'store']);
+        Route::get('/privacy/data-export/{id}', [DataExportRequestController::class, 'show']);
+
+        Route::post('/support/tickets', [SupportTicketController::class, 'store']);
+        Route::delete('/account', [AccountController::class, 'destroy']);
 
         Route::post('/locations/{id}/ratings', [RatingController::class, 'store']);
 
@@ -48,6 +71,7 @@ Route::middleware('json.accept')->group(function (): void {
         Route::post('/help-requests/{id}/messages', [HelpRequestController::class, 'storeMessage']);
 
         Route::middleware('api.role:user')->group(function (): void {
+            Route::post('/locations/report', [LocationController::class, 'storeReport']);
             Route::post('/help-requests', [HelpRequestController::class, 'store']);
             Route::get('/help-requests/mine', [HelpRequestController::class, 'mine']);
             Route::post('/help-requests/{id}/cancel', [HelpRequestController::class, 'cancel']);
@@ -60,6 +84,9 @@ Route::middleware('json.accept')->group(function (): void {
 
             Route::post('/volunteer/status', [VolunteerController::class, 'status']);
             Route::get('/volunteer/incoming', [VolunteerController::class, 'incoming']);
+            Route::get('/volunteer/active', [VolunteerController::class, 'active']);
+            Route::get('/volunteer/history', [VolunteerController::class, 'history']);
+            Route::get('/volunteer/impact', [VolunteerController::class, 'impact']);
         });
     });
 });

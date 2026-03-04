@@ -8,6 +8,19 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Notification extends Model
 {
+    protected $fillable = [
+        'user_id',
+        'type',
+        'title',
+        'body',
+        'severity',
+        'notifiable_type',
+        'notifiable_id',
+        'is_read',
+        'read_at',
+        'metadata',
+    ];
+
     protected function casts(): array
     {
         return [

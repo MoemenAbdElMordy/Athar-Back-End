@@ -52,7 +52,7 @@ class HelpRequestController extends Controller
     public function mine(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'status' => ['nullable', 'string', 'in:pending,active,completed,cancelled'],
+            'status' => ['nullable', 'string', 'in:all,history,pending,active,completed,cancelled'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
@@ -61,8 +61,12 @@ class HelpRequestController extends Controller
             ->with(['requester', 'volunteer'])
             ->latest();
 
-        if (!empty($validated['status'])) {
-            $query->where('status', $validated['status']);
+        if (!empty($validated['status']) && $validated['status'] !== 'all') {
+            if ($validated['status'] === 'history') {
+                $query->whereIn('status', ['completed', 'cancelled']);
+            } else {
+                $query->where('status', $validated['status']);
+            }
         }
 
         $helpRequests = $query->paginate((int) ($validated['per_page'] ?? 15))->withQueryString();

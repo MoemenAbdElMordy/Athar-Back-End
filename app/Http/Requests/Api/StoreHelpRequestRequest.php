@@ -15,7 +15,7 @@ class StoreHelpRequestRequest extends ApiFormRequest
     {
         return [
             'urgency' => ['required', 'string', Rule::in(['low', 'medium', 'high'])],
-            'assistance_type' => ['required', 'string', Rule::in(['navigation', 'finding_location', 'check_in', 'other'])],
+            'assistance_type' => ['required', 'string', 'max:100'],
             'details' => ['nullable', 'string'],
 
             'from_label' => ['required', 'string', 'max:255'],

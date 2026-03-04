@@ -1,59 +1,273 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Athar Back-END
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend API for the Athar platform, built with **Laravel 12** and **PHP 8.2**. This service exposes REST APIs for authentication, locations/places, accessibility contributions, help requests, notifications, privacy controls, and admin operations.
 
-## About Laravel
+## Table of Contents
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Overview
+- Tech Stack
+- Requirements
+- Getting Started (Local Setup)
+- Environment Configuration
+- Database Setup (SQLite / MySQL)
+- Running the App
+- Background Jobs / Queue
+- API Authentication (Sanctum)
+- Postman Collections
+- Useful Artisan Commands
+- Testing
+- Deployment Notes
+- License
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Overview
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Athar is focused on improving accessibility and support through:
 
-## Learning Laravel
+- Locations/Places discovery and management
+- Accessibility contributions and moderation
+- Help requests (user ↔ volunteer flows)
+- Notifications and user preferences
+- Privacy settings and data export requests
+- Place submissions and admin review
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Tech Stack
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- **Laravel**: 12
+- **PHP**: 8.2+
+- **Auth**: Laravel Sanctum (token/session authentication)
+- **Queue**: Database queue driver
+- **Frontend tooling (for assets/admin/dev convenience)**: Vite
 
-## Laravel Sponsors
+## Requirements
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- **PHP**: 8.2 or newer
+- **Composer**: latest stable
+- **Node.js**: recommended (for Vite assets) + npm
+- One of:
+  - **SQLite** (default in `.env.example`)
+  - **MySQL/MariaDB** (optional)
 
-### Premium Partners
+## Getting Started (Local Setup)
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+From the backend root directory:
 
-## Contributing
+```bash
+composer install
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Create your environment file:
 
-## Code of Conduct
+```bash
+copy .env.example .env
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Generate application key:
 
-## Security Vulnerabilities
+```bash
+php artisan key:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Run migrations:
+
+```bash
+php artisan migrate
+```
+
+Install Node dependencies (needed for Vite build/dev scripts referenced by `composer run dev`):
+
+```bash
+npm install
+```
+
+### One-command setup
+
+This project includes a Composer script that performs the common setup steps:
+
+```bash
+composer run setup
+```
+
+This script:
+
+- Installs PHP dependencies
+- Ensures `.env` exists
+- Generates app key
+- Runs migrations
+- Installs npm dependencies
+- Builds assets
+
+## Environment Configuration
+
+The backend uses standard Laravel environment variables.
+
+Common variables you’ll likely edit in `.env`:
+
+- **APP_NAME**, **APP_ENV**, **APP_DEBUG**, **APP_URL**
+- **DB_CONNECTION** and DB credentials
+- **QUEUE_CONNECTION** (defaults to `database`)
+- **SESSION_DRIVER** (defaults to `database`)
+
+### Notes
+
+- If you change `APP_URL`, ensure your client apps point to the same base URL.
+- If you use MySQL, update DB variables accordingly.
+
+## Database Setup
+
+### Option A: SQLite (default)
+
+In `.env`:
+
+```env
+DB_CONNECTION=sqlite
+```
+
+Then run:
+
+```bash
+php artisan migrate
+```
+
+### Option B: MySQL / MariaDB
+
+In `.env`:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=athar
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Then:
+
+```bash
+php artisan migrate
+```
+
+## Running the App
+
+### Development (recommended)
+
+This repo defines a `composer run dev` script which starts multiple processes using `concurrently`:
+
+- Laravel dev server
+- Queue listener
+- Log viewer (Pail)
+- Vite dev server
+
+Run:
+
+```bash
+composer run dev
+```
+
+### Backend only
+
+```bash
+php artisan serve
+```
+
+## Background Jobs / Queue
+
+Queue is configured to use the **database** driver by default (`QUEUE_CONNECTION=database`).
+
+Make sure required tables exist (migrations handle this), then run a worker:
+
+```bash
+php artisan queue:listen --tries=1 --timeout=0
+```
+
+## API Authentication (Sanctum)
+
+Protected endpoints require authentication using **Laravel Sanctum**.
+
+General approach:
+
+- Authenticate via `POST /api/auth/login`
+- Use the returned token/cookie/session as required by your client
+- Send requests with `Accept: application/json`
+
+The API routes are defined in `routes/api.php`.
+
+## Postman Collections
+
+Postman collections are included in the repository root:
+
+- `Athar.postman_collection.json`
+- `Athar_MERGED_Mobile_Admin.postman_collection.json`
+
+Import these into Postman to explore and test endpoints quickly.
+
+## Useful Artisan Commands
+
+### Migrations
+
+```bash
+php artisan migrate
+php artisan migrate:fresh --seed
+```
+
+### Cache/config cleanup
+
+```bash
+php artisan optimize:clear
+```
+
+### OSM Places Import
+
+This project includes a custom import command that can load places from a delimited file (CSV/TSV), optionally wipe existing locations (soft/hard), and bulk insert results.
+
+```bash
+php artisan osm:import-places {path} --wipe=soft|hard --delimiter= --dry-run
+```
+
+Examples:
+
+```bash
+php artisan osm:import-places "D:\\path\\to\\places.csv" --wipe=soft
+php artisan osm:import-places "D:\\path\\to\\places.tsv" --delimiter="\t" --dry-run
+```
+
+## Testing
+
+Run the test suite:
+
+```bash
+composer run test
+```
+
+Or directly:
+
+```bash
+php artisan test
+```
+
+## Deployment Notes
+
+Recommended production checklist:
+
+- Set `APP_ENV=production` and `APP_DEBUG=false`
+- Configure your production database
+- Run migrations:
+
+```bash
+php artisan migrate --force
+```
+
+- Cache configuration/routes/views (optional but recommended):
+
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+- Ensure the queue worker is running under a process manager (e.g., Supervisor / systemd)
+- Configure your web server (Nginx/Apache) to serve `public/`
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is private to the Athar codebase unless stated otherwise by the repository owner.

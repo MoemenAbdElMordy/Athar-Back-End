@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\UpdateVolunteerStatusRequest;
 use App\Http\Resources\HelpRequestResource;
 use App\Models\HelpRequest;
+use App\Models\Review;
 use App\Models\VolunteerSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,6 +62,7 @@ class VolunteerController extends Controller
 
         $query = HelpRequest::query()
             ->where('status', 'pending')
+            ->with(['requester', 'volunteer'])
             ->orderByRaw("CASE urgency_level WHEN 'high' THEN 3 WHEN 'medium' THEN 2 ELSE 1 END DESC")
             ->latest();
 
@@ -74,7 +76,125 @@ class VolunteerController extends Controller
         }
 
         $requests = $query->paginate((int) ($validated['per_page'] ?? 15))->withQueryString();
+        $counts = $this->dashboardCounts($user->id);
 
-        return $this->successResponse($this->paginatedData($requests, HelpRequestResource::collection($requests->getCollection())));
+        return $this->successResponse([
+            'counts' => $counts,
+            'incoming_alert' => [
+                'count' => $counts['incoming'],
+                'message' => sprintf('%d people need your help nearby', $counts['incoming']),
+            ],
+            'requests' => $this->paginatedData($requests, HelpRequestResource::collection($requests->getCollection())),
+        ]);
+    }
+
+    public function active(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'volunteer') {
+            return $this->errorResponse('Only volunteers can view active requests.', [], 403);
+        }
+
+        $validated = $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $query = HelpRequest::query()
+            ->where('volunteer_id', $user->id)
+            ->where('status', 'active')
+            ->with(['requester', 'volunteer'])
+            ->latest('accepted_at')
+            ->latest('id');
+
+        $requests = $query->paginate((int) ($validated['per_page'] ?? 15))->withQueryString();
+
+        return $this->successResponse([
+            'counts' => $this->dashboardCounts($user->id),
+            'status_banner' => 'Assistance in Progress',
+            'requests' => $this->paginatedData($requests, HelpRequestResource::collection($requests->getCollection())),
+        ]);
+    }
+
+    public function history(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'volunteer') {
+            return $this->errorResponse('Only volunteers can view request history.', [], 403);
+        }
+
+        $validated = $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $query = HelpRequest::query()
+            ->where('volunteer_id', $user->id)
+            ->where('status', 'completed')
+            ->with(['requester', 'volunteer'])
+            ->latest('completed_at')
+            ->latest('id');
+
+        $requests = $query->paginate((int) ($validated['per_page'] ?? 15))->withQueryString();
+
+        return $this->successResponse([
+            'counts' => $this->dashboardCounts($user->id),
+            'impact' => $this->impactSummary($user->id),
+            'requests' => $this->paginatedData($requests, HelpRequestResource::collection($requests->getCollection())),
+        ]);
+    }
+
+    public function impact(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'volunteer') {
+            return $this->errorResponse('Only volunteers can view impact summary.', [], 403);
+        }
+
+        return $this->successResponse([
+            'counts' => $this->dashboardCounts($user->id),
+            'impact' => $this->impactSummary($user->id),
+        ]);
+    }
+
+    private function dashboardCounts(int $volunteerId): array
+    {
+        return [
+            'incoming' => HelpRequest::query()->where('status', 'pending')->count(),
+            'active' => HelpRequest::query()
+                ->where('status', 'active')
+                ->where('volunteer_id', $volunteerId)
+                ->count(),
+            'history' => HelpRequest::query()
+                ->where('status', 'completed')
+                ->where('volunteer_id', $volunteerId)
+                ->count(),
+        ];
+    }
+
+    private function impactSummary(int $volunteerId): array
+    {
+        $totalAssists = HelpRequest::query()
+            ->where('status', 'completed')
+            ->where('volunteer_id', $volunteerId)
+            ->count();
+
+        $thisWeek = HelpRequest::query()
+            ->where('status', 'completed')
+            ->where('volunteer_id', $volunteerId)
+            ->where('completed_at', '>=', now()->startOfWeek())
+            ->count();
+
+        // We currently don't store explicit volunteer-assist ratings, so this uses user review averages as a fallback metric.
+        $avgRating = (float) (Review::query()
+            ->where('user_id', $volunteerId)
+            ->avg('rating') ?? 0);
+
+        return [
+            'total_assists' => $totalAssists,
+            'avg_rating' => round($avgRating, 2),
+            'this_week' => $thisWeek,
+        ];
     }
 }

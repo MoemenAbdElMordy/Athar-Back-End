@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -24,16 +25,22 @@ class User extends Authenticatable
         'full_name',
         'email',
         'password',
+        'password_changed_at',
         'phone',
         'city',
         'national_id',
         'date_of_birth',
         'id_document_path',
+        'certification_document_path',
         'volunteer_languages',
         'volunteer_availability',
         'volunteer_motivation',
         'disability_type',
         'mobility_aids',
+        'profile_photo_path',
+        'assistance_needs',
+        'emergency_contact_name',
+        'emergency_contact_phone',
         'role',
         'role_locked',
         'role_verified_at',
@@ -85,6 +92,26 @@ class User extends Authenticatable
         return $this->hasMany(Notification::class);
     }
 
+    public function notificationPreference(): HasOne
+    {
+        return $this->hasOne(NotificationPreference::class);
+    }
+
+    public function privacySetting(): HasOne
+    {
+        return $this->hasOne(PrivacySetting::class);
+    }
+
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class);
+    }
+
+    public function dataExportRequests(): HasMany
+    {
+        return $this->hasMany(DataExportRequest::class);
+    }
+
     public function placeSubmissions(): HasMany
     {
         return $this->hasMany(PlaceSubmission::class, 'submitted_by');
@@ -115,6 +142,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'password_changed_at' => 'datetime',
             'date_of_birth' => 'date',
             'volunteer_languages' => 'array',
             'volunteer_availability' => 'array',

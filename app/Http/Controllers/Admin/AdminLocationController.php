@@ -28,6 +28,10 @@ class AdminLocationController extends Controller
     {
         $query = Location::query();
 
+        $validated = $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:200'],
+        ]);
+
         if ($request->filled('search')) {
             $search = (string) $request->query('search');
             $query->where('name', 'like', "%{$search}%");
@@ -41,7 +45,8 @@ class AdminLocationController extends Controller
             $query->where('category_id', $request->query('category_id'));
         }
 
-        $locations = $query->orderByDesc('id')->paginate(15);
+        $perPage = (int) ($validated['per_page'] ?? 15);
+        $locations = $query->orderByDesc('id')->paginate($perPage);
 
         return response()->json($locations);
     }
