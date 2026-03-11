@@ -816,7 +816,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"from_label\": \"Home\",\n  \"from_lat\": 30.0444,\n  \"from_lng\": 31.2357,\n  \"to_label\": \"Hospital\",\n  \"to_lat\": 30.05,\n  \"to_lng\": 31.24,\n  \"assistance_type\": \"navigation\",\n  \"urgency\": \"high\",\n  \"details\": \"Need guidance\"\n}"
+              "raw": "{\n  \"from_label\": \"Home\",\n  \"from_lat\": 30.0444,\n  \"from_lng\": 31.2357,\n  \"to_label\": \"Hospital\",\n  \"to_lat\": 30.05,\n  \"to_lng\": 31.24,\n  \"assistance_type\": \"navigation\",\n  \"urgency\": \"high\",\n  \"details\": \"Need guidance\",\n  \"payment_method\": \"cash\",\n  \"service_fee\": 50\n}"
             }
           }
         },
@@ -886,6 +886,42 @@
                 "{{help_request_id}}",
                 "cancel"
               ]
+            }
+          }
+        },
+        {
+          "name": "Help Requests - Pay for Service",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/help-requests/{{help_request_id}}/pay",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "help-requests",
+                "{{help_request_id}}",
+                "pay"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Khaled\",\n  \"last_name\": \"Ahmed\",\n  \"email\": \"khaled@example.com\",\n  \"phone_number\": \"01012345678\"\n}"
             }
           }
         },
@@ -1225,6 +1261,165 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"message\": \"I am nearby\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Payments - Card Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/card/checkout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "card",
+                "checkout"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"booking_id\": 1,\n  \"amount\": 100,\n  \"first_name\": \"Khaled\",\n  \"last_name\": \"Ahmed\",\n  \"email\": \"khaled@example.com\",\n  \"phone_number\": \"01012345678\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Payments - Wallet Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/wallet/checkout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "wallet",
+                "checkout"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"booking_id\": 1,\n  \"amount\": 100,\n  \"phone_number\": \"01012345678\",\n  \"first_name\": \"Khaled\",\n  \"last_name\": \"Ahmed\",\n  \"email\": \"khaled@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Payments - Show",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/{{payment_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{{payment_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payments - Refresh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/{{payment_id}}/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{{payment_id}}",
+                "refresh"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payments - Paymob Callback (Public)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/paymob/callback",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "paymob",
+                "callback"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"obj\": {\n    \"id\": 112233,\n    \"success\": true,\n    \"order\": {\n      \"id\": 999888,\n      \"merchant_order_id\": \"ATHAR-TESTCB-001\"\n    }\n  }\n}"
             }
           }
         },

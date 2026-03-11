@@ -16,8 +16,12 @@ use App\Http\Controllers\Api\PrivacySettingController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SupportTicketController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VolunteerController;
 use Illuminate\Support\Facades\Route;
+
+// ─── Payment callback (public, no auth) ──────────────────
+Route::post('/payments/paymob/callback', [PaymentController::class, 'callback']);
 
 Route::middleware('json.accept')->group(function (): void {
     Route::post('/auth/register', [AuthController::class, 'registerUser']);
@@ -67,6 +71,12 @@ Route::middleware('json.accept')->group(function (): void {
 
         Route::put('/locations/{id}/accessibility-report', [AccessibilityContributionController::class, 'upsert']);
 
+        // ─── Payments ─────────────────────────────────────
+        Route::post('/payments/card/checkout', [PaymentController::class, 'cardCheckout']);
+        Route::post('/payments/wallet/checkout', [PaymentController::class, 'walletCheckout']);
+        Route::post('/payments/{id}/refresh', [PaymentController::class, 'refresh']);
+        Route::get('/payments/{id}', [PaymentController::class, 'show']);
+
         Route::get('/help-requests/{id}/messages', [HelpRequestController::class, 'messages']);
         Route::post('/help-requests/{id}/messages', [HelpRequestController::class, 'storeMessage']);
 
@@ -74,6 +84,7 @@ Route::middleware('json.accept')->group(function (): void {
             Route::post('/locations/report', [LocationController::class, 'storeReport']);
             Route::post('/help-requests', [HelpRequestController::class, 'store']);
             Route::get('/help-requests/mine', [HelpRequestController::class, 'mine']);
+            Route::post('/help-requests/{id}/pay', [HelpRequestController::class, 'payForService']);
             Route::post('/help-requests/{id}/cancel', [HelpRequestController::class, 'cancel']);
         });
 

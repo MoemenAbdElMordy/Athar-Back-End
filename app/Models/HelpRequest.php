@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class HelpRequest extends Model
 {
@@ -14,6 +15,8 @@ class HelpRequest extends Model
         'user_id',
         'assigned_admin_id',
         'status',
+        'payment_method',
+        'service_fee',
         'urgency_level',
         'assistance_type',
         'details',
@@ -70,5 +73,15 @@ class HelpRequest extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
+    }
+
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class);
+    }
+
+    public function requiresOnlinePayment(): bool
+    {
+        return $this->payment_method === 'card';
     }
 }

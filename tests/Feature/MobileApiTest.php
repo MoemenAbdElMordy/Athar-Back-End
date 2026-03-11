@@ -179,9 +179,9 @@ class MobileApiTest extends TestCase
 
     public function test_mobile_help_requests_and_volunteer_flow_endpoints_work(): void
     {
-        $requester = User::factory()->create();
+        $requester = User::factory()->create(['role' => 'user']);
         $volunteer = User::factory()->create();
-        $volunteer->forceFill(['role' => 'volunteer'])->save();
+        $volunteer->forceFill(['role' => 'volunteer', 'role_verified_at' => now()])->save();
         $volunteer->refresh();
 
         Sanctum::actingAs($requester);
@@ -195,6 +195,8 @@ class MobileApiTest extends TestCase
             'assistance_type' => 'navigation',
             'urgency' => 'high',
             'details' => 'Need guidance',
+            'payment_method' => 'cash',
+            'service_fee' => 0,
         ]);
 
         $createResponse
@@ -251,6 +253,8 @@ class MobileApiTest extends TestCase
             'assistance_type' => 'other',
             'urgency' => 'low',
             'details' => 'Simple guidance',
+            'payment_method' => 'cash',
+            'service_fee' => 0,
         ])->json('data.id');
 
         Sanctum::actingAs($volunteer);
@@ -269,6 +273,8 @@ class MobileApiTest extends TestCase
             'assistance_type' => 'finding_location',
             'urgency' => 'medium',
             'details' => 'Need quick support',
+            'payment_method' => 'cash',
+            'service_fee' => 0,
         ])->json('data.id');
 
         $this->postJson("/api/help-requests/{$cancelHelpRequestId}/cancel")

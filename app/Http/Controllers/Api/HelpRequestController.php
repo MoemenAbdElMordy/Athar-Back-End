@@ -15,8 +15,12 @@ use App\Http\Resources\HelpRequestResource;
 use App\Http\Resources\MessageResource;
 use App\Models\HelpRequest;
 use App\Models\Message;
+use App\Models\Notification;
+use App\Models\Payment;
+use App\Services\PaymobService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class HelpRequestController extends Controller
 {
@@ -33,6 +37,8 @@ class HelpRequestController extends Controller
             'urgency_level' => $data['urgency'],
             'assistance_type' => $data['assistance_type'],
             'details' => $data['details'] ?? null,
+            'payment_method' => $data['payment_method'],
+            'service_fee' => (int) round(($data['service_fee'] ?? 0) * 100),
             'from_name' => $data['from_label'],
             'from_lat' => $data['from_lat'],
             'from_lng' => $data['from_lng'],
@@ -119,12 +125,38 @@ class HelpRequestController extends Controller
             return $this->errorResponse('Only pending requests can be accepted.', [], 422);
         }
 
-        $helpRequest->status = 'active';
-        $helpRequest->volunteer_id = $request->user()->id;
+        $volunteer = $request->user();
+        $helpRequest->volunteer_id = $volunteer->id;
         $helpRequest->accepted_at = now();
-        $helpRequest->save();
 
+        if ($helpRequest->requiresOnlinePayment()) {
+            $helpRequest->status = 'pending_payment';
+        } else {
+            $helpRequest->status = 'active';
+        }
+
+        $helpRequest->save();
         $helpRequest->load(['requester', 'volunteer']);
+
+        Notification::create([
+            'user_id' => $helpRequest->requester_id,
+            'type' => 'volunteer_accepted',
+            'title' => 'Volunteer Accepted!',
+            'body' => $helpRequest->requiresOnlinePayment()
+                ? 'Please complete payment to confirm your booking.'
+                : "Volunteer {$volunteer->name} has accepted your request.",
+            'severity' => 'info',
+            'notifiable_type' => HelpRequest::class,
+            'notifiable_id' => $helpRequest->id,
+            'metadata' => [
+                'help_request_id' => $helpRequest->id,
+                'volunteer_id' => $volunteer->id,
+                'volunteer_name' => $volunteer->name,
+                'payment_method' => $helpRequest->payment_method,
+                'service_fee' => $helpRequest->service_fee,
+                'requires_payment' => $helpRequest->requiresOnlinePayment(),
+            ],
+        ]);
 
         broadcast(new HelpRequestAssigned($helpRequest))->toOthers();
 
@@ -161,8 +193,9 @@ class HelpRequestController extends Controller
             return $this->errorResponse('Help request not found.', [], 404);
         }
 
-        if ($helpRequest->status !== 'active' || (int) $helpRequest->volunteer_id !== (int) $request->user()->id) {
-            return $this->errorResponse('Only assigned active requests can be completed.', [], 422);
+        if (!in_array($helpRequest->status, ['active', 'confirmed'], true)
+            || (int) $helpRequest->volunteer_id !== (int) $request->user()->id) {
+            return $this->errorResponse('Only assigned active/confirmed requests can be completed.', [], 422);
         }
 
         $helpRequest->status = 'completed';
@@ -171,9 +204,115 @@ class HelpRequestController extends Controller
 
         $helpRequest->load(['requester', 'volunteer']);
 
+        Notification::create([
+            'user_id' => $helpRequest->requester_id,
+            'type' => 'service_completed',
+            'title' => 'Service Completed',
+            'body' => 'Your volunteer has finished the service. Please rate your experience.',
+            'severity' => 'info',
+            'notifiable_type' => HelpRequest::class,
+            'notifiable_id' => $helpRequest->id,
+            'metadata' => [
+                'help_request_id' => $helpRequest->id,
+                'volunteer_id' => $helpRequest->volunteer_id,
+                'volunteer_name' => $helpRequest->volunteer?->name,
+                'action' => 'rate_experience',
+            ],
+        ]);
+
         broadcast(new HelpRequestUpdated($helpRequest))->toOthers();
 
         return $this->successResponse(new HelpRequestResource($helpRequest));
+    }
+
+    public function payForService(Request $request, int $id): JsonResponse
+    {
+        $helpRequest = HelpRequest::query()->with('volunteer')->find($id);
+
+        if (!$helpRequest) {
+            return $this->errorResponse('Help request not found.', [], 404);
+        }
+
+        if ((int) $helpRequest->requester_id !== (int) $request->user()->id) {
+            return $this->errorResponse('Forbidden.', [], 403);
+        }
+
+        if ($helpRequest->status !== 'pending_payment') {
+            return $this->errorResponse('This request does not require payment at this time.', [], 422);
+        }
+
+        if ($helpRequest->payment_method === 'cash') {
+            $helpRequest->status = 'active';
+            $helpRequest->save();
+            $helpRequest->load(['requester', 'volunteer']);
+
+            return $this->successResponse(
+                new HelpRequestResource($helpRequest),
+                'Cash payment confirmed. Service is now active.',
+            );
+        }
+
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255'],
+            'phone_number' => ['required', 'string', 'max:20'],
+        ]);
+
+        $serviceFeeEgp = $helpRequest->service_fee / 100;
+        $amountCents = $helpRequest->service_fee;
+
+        if ($amountCents <= 0) {
+            $helpRequest->status = 'active';
+            $helpRequest->save();
+            $helpRequest->load(['requester', 'volunteer']);
+
+            return $this->successResponse(
+                new HelpRequestResource($helpRequest),
+                'No fee required. Service is now active.',
+            );
+        }
+
+        try {
+            $payment = Payment::create([
+                'help_request_id' => $helpRequest->id,
+                'user_id' => $helpRequest->requester_id,
+                'payment_method' => 'card',
+                'amount_cents' => $amountCents,
+                'total_amount' => $serviceFeeEgp,
+                'currency' => 'EGP',
+                'order_reference' => PaymobService::generateOrderReference(),
+                'status' => 'pending',
+                'raw_request_json' => [
+                    'help_request_id' => $helpRequest->id,
+                    'billing' => $validated,
+                ],
+            ]);
+
+            $paymobService = app(PaymobService::class);
+            $result = $paymobService->generateCardCheckoutUrl($payment, $validated);
+
+            return $this->successResponse([
+                'payment_id' => $payment->id,
+                'help_request_id' => $helpRequest->id,
+                'payment_method' => 'card',
+                'amount_cents' => $amountCents,
+                'amount_egp' => $serviceFeeEgp,
+                'currency' => 'EGP',
+                'paymob_order_id' => $result['paymob_order_id'],
+                'payment_token' => $result['payment_key'],
+                'checkout_url' => $result['checkout_url'],
+                'status' => $payment->fresh()->status,
+            ], 'Payment session created. Proceed to checkout.');
+
+        } catch (\Throwable $e) {
+            Log::error('Pay for service failed', [
+                'help_request_id' => $helpRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->errorResponse('Unable to process payment at the moment.', [], 500);
+        }
     }
 
     public function messages(Request $request, int $id): JsonResponse
