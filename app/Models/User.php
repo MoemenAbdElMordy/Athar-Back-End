@@ -67,6 +67,16 @@ class User extends Authenticatable
         return $this->hasMany(HelpRequest::class, 'volunteer_id');
     }
 
+    public function volunteerReviewsReceived(): HasMany
+    {
+        return $this->hasMany(VolunteerReview::class, 'volunteer_id');
+    }
+
+    public function volunteerReviewsGiven(): HasMany
+    {
+        return $this->hasMany(VolunteerReview::class, 'reviewer_id');
+    }
+
     public function volunteerSessions(): HasMany
     {
         return $this->hasMany(VolunteerSession::class);

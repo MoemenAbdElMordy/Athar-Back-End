@@ -167,6 +167,7 @@ Admin routes are served under `/admin/*` (see `routes/web.php`) and are protecte
 Admin capabilities include:
 
 - Accounts management and volunteer approvals
+- Per-volunteer analytics payload for admin review (impact, earnings, performance, reviews)
 - Places CRUD + accessibility report upsert
 - Categories and governments
 - Help request moderation and resolution
@@ -403,7 +404,9 @@ These are protected by `api.role:user` middleware.
 - `POST /api/locations/report`
 - `POST /api/help-requests`
 - `GET /api/help-requests/mine`
+- `POST /api/help-requests/{id}/pay`
 - `POST /api/help-requests/{id}/cancel`
+- `POST /api/help-requests/{id}/rate`
 
 #### Role-restricted: `volunteer`
 
@@ -418,6 +421,9 @@ These are protected by `api.role:volunteer` middleware.
 - `GET /api/volunteer/active`
 - `GET /api/volunteer/history`
 - `GET /api/volunteer/impact`
+- `GET /api/volunteer/analytics/earnings`
+- `GET /api/volunteer/analytics/performance`
+- `GET /api/volunteer/analytics/reviews`
 
 ### Admin API (`routes/web.php`)
 
@@ -432,6 +438,17 @@ Admin endpoints are grouped under `/admin`.
 
 - `GET /admin/me`
 - `GET /admin/dashboard`
+
+Dashboard response includes core counters and enriched sections used by the admin frontend:
+
+- `tutorials_summary`
+- `reports_summary`
+- `submissions_summary`
+- `accessibility_overview`
+- `recent_reports`
+- `recent_tutorials`
+- `recent_completed`
+- `top_volunteers`
 
 Notifications
 
@@ -490,6 +507,7 @@ Flags
 Accounts
 
 - `GET /admin/accounts`
+- `GET /admin/accounts/{id}/volunteer-analytics`
 - `POST /admin/accounts/{id}/volunteer/approve`
 - `POST /admin/accounts/{id}/volunteer/reject`
 - `POST /admin/accounts`

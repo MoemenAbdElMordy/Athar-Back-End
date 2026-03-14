@@ -3,10 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\VolunteerReviewItemResource;
+use App\Models\HelpRequest;
 use App\Models\User;
+use App\Models\VolunteerReview;
+use App\Services\VolunteerAnalyticsService;
+use App\Services\VolunteerEarningsService;
+use App\Services\VolunteerPerformanceService;
+use App\Services\VolunteerReviewsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 
 class AdminAccountController extends Controller
 {
@@ -77,20 +85,50 @@ class AdminAccountController extends Controller
             ->limit(100)
             ->get();
 
+        $hasReviewsTable = Schema::hasTable('volunteer_reviews');
+        $hasFeeColumns = Schema::hasColumn('help_requests', 'net_amount_cents');
+        $hasServiceFee = Schema::hasColumn('help_requests', 'service_fee');
+
         $volunteerAccounts = User::query()
             ->select($baseSelect)
             ->where('role', 'volunteer')
             ->whereNotNull('role_verified_at')
+            ->withCount(['helpRequestsAccepted as completed_count' => function ($q) {
+                $q->where('status', 'completed');
+            }])
             ->orderByDesc('id')
             ->limit(200)
-            ->get();
+            ->get()
+            ->map(function ($v) use ($hasReviewsTable, $hasFeeColumns, $hasServiceFee) {
+                $avgRating = $hasReviewsTable
+                    ? VolunteerReview::query()->where('volunteer_id', $v->id)->avg('rating')
+                    : null;
+
+                $totalEarnings = 0;
+                if ($hasFeeColumns) {
+                    $totalEarnings = (int) HelpRequest::query()->where('volunteer_id', $v->id)->where('status', 'completed')->sum('net_amount_cents');
+                } elseif ($hasServiceFee) {
+                    $totalEarnings = (int) HelpRequest::query()->where('volunteer_id', $v->id)->where('status', 'completed')->sum('service_fee');
+                }
+
+                $v->completed_requests = (int) $v->completed_count;
+                $v->avg_rating = round((float) $avgRating, 1);
+                $v->total_earnings = round($totalEarnings / 100, 2);
+
+                return $v;
+            });
 
         $userAccounts = User::query()
             ->select($baseSelect)
             ->where('role', 'user')
+            ->withCount(['helpRequestsMade as requests_count'])
             ->orderByDesc('id')
             ->limit(200)
-            ->get();
+            ->get()
+            ->map(function ($u) {
+                $u->total_requests = (int) $u->requests_count;
+                return $u;
+            });
 
         return response()->json([
             'counts' => [
@@ -236,6 +274,52 @@ class AdminAccountController extends Controller
         return response()->json([
             'success' => true,
             'user' => $user,
+        ]);
+    }
+
+    public function volunteerAnalytics(
+        Request $request,
+        int $id,
+        VolunteerAnalyticsService $analyticsService,
+        VolunteerEarningsService $earningsService,
+        VolunteerPerformanceService $performanceService,
+        VolunteerReviewsService $reviewsService,
+    ): JsonResponse {
+        $user = User::query()
+            ->select(['id', 'name', 'full_name', 'email', 'phone', 'role', 'is_active', 'role_verified_at', 'created_at'])
+            ->find($id);
+
+        if (!$user) {
+            return response()->json(['message' => 'Not Found.'], 404);
+        }
+
+        if ($user->role !== 'volunteer') {
+            return response()->json(['message' => 'Analytics are only available for volunteer accounts.'], 422);
+        }
+
+        $validated = $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'rating' => ['nullable', 'integer', 'min:1', 'max:5'],
+        ]);
+
+        $perPage = (int) ($validated['per_page'] ?? 10);
+        $ratingFilter = isset($validated['rating']) ? (int) $validated['rating'] : null;
+        $reviewsPaginator = $reviewsService->paginated($user->id, $perPage, $ratingFilter);
+
+        return response()->json([
+            'volunteer' => $user,
+            'impact' => $analyticsService->overview($user->id),
+            'earnings' => $earningsService->earnings($user->id),
+            'performance' => $performanceService->performance($user->id),
+            'reviews' => [
+                'summary' => $reviewsService->summary($user->id),
+                'data' => VolunteerReviewItemResource::collection(collect($reviewsPaginator->items()))->resolve(),
+                'meta' => [
+                    'current_page' => $reviewsPaginator->currentPage(),
+                    'per_page' => $reviewsPaginator->perPage(),
+                    'total' => $reviewsPaginator->total(),
+                ],
+            ],
         ]);
     }
 }

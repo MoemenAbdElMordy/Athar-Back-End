@@ -12,15 +12,43 @@ class AdminFlagController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Flag::query();
+        $query = Flag::query()->with([
+            'flagger:id,name,full_name,email',
+            'handler:id,name,full_name,email',
+            'flaggable',
+        ]);
+
+        $validated = $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'search' => ['nullable', 'string', 'max:255'],
+        ]);
 
         if ($request->filled('status')) {
             $query->where('status', (string) $request->query('status'));
         }
 
-        $flags = $query->orderByDesc('id')->paginate(15);
+        if ($request->filled('search')) {
+            $search = (string) $validated['search'];
+            $query->where(function ($inner) use ($search) {
+                $inner
+                    ->where('reason', 'like', "%{$search}%")
+                    ->orWhere('details', 'like', "%{$search}%")
+                    ->orWhere('admin_note', 'like', "%{$search}%");
+            });
+        }
 
-        return response()->json($flags);
+        $perPage = (int) ($validated['per_page'] ?? 15);
+        $flags = $query->orderByDesc('id')->paginate($perPage);
+
+        return response()->json([
+            ...$flags->toArray(),
+            'summary' => [
+                'open' => Flag::query()->where('status', 'open')->count(),
+                'need_info' => Flag::query()->where('status', 'need_info')->count(),
+                'resolved' => Flag::query()->where('status', 'resolved')->count(),
+                'dismissed' => Flag::query()->where('status', 'dismissed')->count(),
+            ],
+        ]);
     }
 
     public function resolve(int $id): JsonResponse

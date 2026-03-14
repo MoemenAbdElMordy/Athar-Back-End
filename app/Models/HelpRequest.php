@@ -37,6 +37,9 @@ class HelpRequest extends Model
         'completed_at',
         'cancelled_at',
         'resolved_at',
+        'fee_amount_cents',
+        'net_amount_cents',
+        'cleared_at',
     ];
 
     protected function casts(): array
@@ -47,6 +50,7 @@ class HelpRequest extends Model
             'completed_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'resolved_at' => 'datetime',
+            'cleared_at' => 'datetime',
         ];
     }
 
@@ -78,6 +82,11 @@ class HelpRequest extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
+    }
+
+    public function volunteerReview(): HasOne
+    {
+        return $this->hasOne(VolunteerReview::class);
     }
 
     public function requiresOnlinePayment(): bool

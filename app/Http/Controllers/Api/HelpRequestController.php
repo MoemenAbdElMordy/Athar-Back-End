@@ -17,6 +17,7 @@ use App\Models\HelpRequest;
 use App\Models\Message;
 use App\Models\Notification;
 use App\Models\Payment;
+use App\Models\VolunteerReview;
 use App\Services\PaymobService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -200,6 +201,21 @@ class HelpRequestController extends Controller
 
         $helpRequest->status = 'completed';
         $helpRequest->completed_at = now();
+
+        // ── Compute settlement fields ──
+        $gross = (int) $helpRequest->service_fee;
+        $feePct = (int) config('athar.platform_fee_percentage', 30);
+        $fee = (int) round($gross * $feePct / 100);
+        $net = $gross - $fee;
+        $helpRequest->fee_amount_cents = $fee;
+        $helpRequest->net_amount_cents = $net;
+
+        // Cash payments are cleared immediately on completion.
+        // Card payments are cleared when Paymob callback marks them paid (handled in PaymobService).
+        if ($helpRequest->payment_method === 'cash') {
+            $helpRequest->cleared_at = now();
+        }
+
         $helpRequest->save();
 
         $helpRequest->load(['requester', 'volunteer']);
@@ -370,6 +386,52 @@ class HelpRequestController extends Controller
         broadcast(new HelpRequestMessageCreated($message))->toOthers();
 
         return $this->successResponse(new MessageResource($message), null, 201);
+    }
+
+    public function rateVolunteer(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $helpRequest = HelpRequest::query()->find($id);
+
+        if (!$helpRequest) {
+            return $this->errorResponse('Help request not found.', [], 404);
+        }
+
+        if ((int) $helpRequest->requester_id !== (int) $request->user()->id) {
+            return $this->errorResponse('Forbidden.', [], 403);
+        }
+
+        if ($helpRequest->status !== 'completed') {
+            return $this->errorResponse('You can only rate completed requests.', [], 422);
+        }
+
+        if (!$helpRequest->volunteer_id) {
+            return $this->errorResponse('No volunteer assigned to this request.', [], 422);
+        }
+
+        $review = VolunteerReview::query()->updateOrCreate(
+            [
+                'help_request_id' => $helpRequest->id,
+                'reviewer_id' => $request->user()->id,
+            ],
+            [
+                'volunteer_id' => $helpRequest->volunteer_id,
+                'rating' => $validated['rating'],
+                'comment' => $validated['comment'] ?? null,
+            ]
+        );
+
+        return $this->successResponse([
+            'id' => $review->id,
+            'help_request_id' => $helpRequest->id,
+            'volunteer_id' => $helpRequest->volunteer_id,
+            'rating' => (int) $review->rating,
+            'comment' => $review->comment,
+        ], 'Review submitted successfully.', 201);
     }
 
     private function canAccessHelpRequest(int $userId, HelpRequest $helpRequest): bool

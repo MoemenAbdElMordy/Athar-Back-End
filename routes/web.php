@@ -63,6 +63,7 @@ Route::prefix('admin')->group(function () {
         Route::post('/flags/{id}/resolve', [AdminFlagController::class, 'resolve']);
 
         Route::get('/accounts', [AdminAccountController::class, 'index']);
+        Route::get('/accounts/{id}/volunteer-analytics', [AdminAccountController::class, 'volunteerAnalytics']);
         Route::post('/accounts/{id}/volunteer/approve', [AdminAccountController::class, 'approveVolunteer']);
         Route::post('/accounts/{id}/volunteer/reject', [AdminAccountController::class, 'rejectVolunteer']);
         Route::post('/accounts', [AdminAccountController::class, 'store']);

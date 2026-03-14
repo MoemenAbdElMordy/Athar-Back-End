@@ -20,6 +20,8 @@ class UpsertAccessibilityReportRequest extends FormRequest
             'elevator_available' => ['sometimes', 'boolean'],
             'ramp_available' => ['sometimes', 'boolean'],
             'parking' => ['sometimes', 'boolean'],
+            'accessible_toilet' => ['sometimes', 'boolean'],
+            'notes' => ['sometimes', 'nullable', 'string'],
         ];
     }
 }

@@ -26,15 +26,21 @@ class AdminLocationController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Location::query();
+        $query = Location::query()
+            ->with(['category:id,name', 'government:id,accessible_locations', 'accessibilityReport']);
 
         $validated = $request->validate([
             'per_page' => ['nullable', 'integer', 'min:1', 'max:200'],
+            'verified' => ['nullable', 'boolean'],
         ]);
 
         if ($request->filled('search')) {
             $search = (string) $request->query('search');
-            $query->where('name', 'like', "%{$search}%");
+            $query->where(function ($inner) use ($search) {
+                $inner
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('address', 'like', "%{$search}%");
+            });
         }
 
         if ($request->filled('government_id')) {
@@ -43,6 +49,15 @@ class AdminLocationController extends Controller
 
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->query('category_id'));
+        }
+
+        if ($request->filled('verified')) {
+            $verified = filter_var($request->query('verified'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($verified !== null) {
+                $query->whereHas('accessibilityReport', function ($reportQuery) use ($verified) {
+                    $reportQuery->where('verified', $verified);
+                });
+            }
         }
 
         $perPage = (int) ($validated['per_page'] ?? 15);
@@ -55,7 +70,10 @@ class AdminLocationController extends Controller
     {
         $location = Location::create($request->validated());
 
-        return response()->json($location, 201);
+        return response()->json(
+            $location->load(['category', 'government', 'accessibilityReport']),
+            201,
+        );
     }
 
     public function update(UpdateLocationRequest $request, int $id): JsonResponse
@@ -68,7 +86,7 @@ class AdminLocationController extends Controller
 
         $location->update($request->validated());
 
-        return response()->json($location);
+        return response()->json($location->load(['category', 'government', 'accessibilityReport']));
     }
 
     public function destroy(int $id): JsonResponse

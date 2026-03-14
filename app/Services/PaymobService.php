@@ -389,7 +389,10 @@ class PaymobService
             if ($payment->help_request_id) {
                 $helpRequest = $payment->helpRequest;
                 if ($helpRequest && $helpRequest->status === 'pending_payment') {
-                    $helpRequest->update(['status' => 'active']);
+                    $helpRequest->update([
+                        'status' => 'active',
+                        'cleared_at' => now(), // card payment cleared on successful callback
+                    ]);
                     Log::info('Help request auto-confirmed after payment', [
                         'help_request_id' => $helpRequest->id,
                         'payment_id' => $payment->id,

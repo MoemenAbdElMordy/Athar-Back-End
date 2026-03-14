@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SupportTicketController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VolunteerController;
+use App\Http\Controllers\Api\VolunteerAnalyticsController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Payment callback (public, no auth) ──────────────────
@@ -86,6 +87,7 @@ Route::middleware('json.accept')->group(function (): void {
             Route::get('/help-requests/mine', [HelpRequestController::class, 'mine']);
             Route::post('/help-requests/{id}/pay', [HelpRequestController::class, 'payForService']);
             Route::post('/help-requests/{id}/cancel', [HelpRequestController::class, 'cancel']);
+            Route::post('/help-requests/{id}/rate', [HelpRequestController::class, 'rateVolunteer']);
         });
 
         Route::middleware('api.role:volunteer')->group(function (): void {
@@ -98,6 +100,12 @@ Route::middleware('json.accept')->group(function (): void {
             Route::get('/volunteer/active', [VolunteerController::class, 'active']);
             Route::get('/volunteer/history', [VolunteerController::class, 'history']);
             Route::get('/volunteer/impact', [VolunteerController::class, 'impact']);
+
+            Route::prefix('volunteer/analytics')->group(function (): void {
+                Route::get('/earnings', [VolunteerAnalyticsController::class, 'earnings']);
+                Route::get('/performance', [VolunteerAnalyticsController::class, 'performance']);
+                Route::get('/reviews', [VolunteerAnalyticsController::class, 'reviews']);
+            });
         });
     });
 });

@@ -5,16 +5,24 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Api\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\UpdateVolunteerStatusRequest;
+use App\Http\Requests\Api\VolunteerHistoryIndexRequest;
 use App\Http\Resources\HelpRequestResource;
+use App\Http\Resources\VolunteerHistoryItemResource;
 use App\Models\HelpRequest;
-use App\Models\Review;
+use App\Models\VolunteerReview;
 use App\Models\VolunteerSession;
+use App\Services\VolunteerAnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class VolunteerController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(
+        private readonly VolunteerAnalyticsService $analyticsService,
+    ) {}
 
     public function status(UpdateVolunteerStatusRequest $request): JsonResponse
     {
@@ -116,7 +124,11 @@ class VolunteerController extends Controller
         ]);
     }
 
-    public function history(Request $request): JsonResponse
+    /**
+     * History tab: expanded with summary, filters, pagination, and settlement data.
+     * Backward-compatible: keeps 'counts' and 'impact' keys alongside new 'summary', 'data', 'meta', 'filters'.
+     */
+    public function history(VolunteerHistoryIndexRequest $request): JsonResponse
     {
         $user = $request->user();
 
@@ -124,26 +136,81 @@ class VolunteerController extends Controller
             return $this->errorResponse('Only volunteers can view request history.', [], 403);
         }
 
-        $validated = $request->validate([
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $validated = $request->validated();
+        $volunteerId = $user->id;
 
-        $query = HelpRequest::query()
-            ->where('volunteer_id', $user->id)
+        // ── Summary cards ──
+        $requestsThisWeek = HelpRequest::query()
+            ->where('volunteer_id', $volunteerId)
             ->where('status', 'completed')
-            ->with(['requester', 'volunteer'])
-            ->latest('completed_at')
-            ->latest('id');
+            ->where('completed_at', '>=', Carbon::now()->startOfWeek(Carbon::SATURDAY))
+            ->count();
 
-        $requests = $query->paginate((int) ($validated['per_page'] ?? 15))->withQueryString();
+        $thisMonthNet = $this->analyticsService->netEarningsCents(
+            $volunteerId,
+            Carbon::now()->startOfMonth()->toDateTimeString(),
+            Carbon::now()->endOfMonth()->toDateTimeString(),
+        );
+
+        // ── Query with filters ──
+        $status = $validated['status'] ?? 'completed';
+        $query = HelpRequest::query()
+            ->where('volunteer_id', $volunteerId)
+            ->with(['requester']);
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if (!empty($validated['from'])) {
+            $query->whereDate('completed_at', '>=', $validated['from']);
+        }
+        if (!empty($validated['to'])) {
+            $query->whereDate('completed_at', '<=', $validated['to']);
+        }
+        if (!empty($validated['assistance_type'])) {
+            $query->where('assistance_type', $validated['assistance_type']);
+        }
+
+        $sortBy = $validated['sort_by'] ?? 'completed_at';
+        $sortDir = $validated['sort_direction'] ?? 'desc';
+        $query->orderBy($sortBy, $sortDir)->orderByDesc('id');
+
+        $perPage = (int) ($validated['per_page'] ?? 15);
+        $paginated = $query->paginate($perPage)->withQueryString();
+
+        // ── Backward compat ──
+        $counts = $this->dashboardCounts($volunteerId);
+        $legacyImpact = $this->impactSummary($volunteerId);
 
         return $this->successResponse([
-            'counts' => $this->dashboardCounts($user->id),
-            'impact' => $this->impactSummary($user->id),
-            'requests' => $this->paginatedData($requests, HelpRequestResource::collection($requests->getCollection())),
+            // backward-compatible keys
+            'counts' => $counts,
+            'impact' => $legacyImpact,
+            // new History tab contract
+            'summary' => [
+                'requests_this_week' => $requestsThisWeek,
+                'this_month_net_earnings' => round($thisMonthNet / 100, 2),
+                'currency' => 'EGP',
+            ],
+            'data' => VolunteerHistoryItemResource::collection($paginated->getCollection()),
+            'meta' => [
+                'current_page' => $paginated->currentPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+            ],
+            'filters' => [
+                'status' => $status,
+                'from' => $validated['from'] ?? null,
+                'to' => $validated['to'] ?? null,
+            ],
         ]);
     }
 
+    /**
+     * Impact / Overview tab: expanded with analytics data.
+     * Backward-compatible: keeps 'counts' and 'impact' keys alongside new overview data.
+     */
     public function impact(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -152,10 +219,17 @@ class VolunteerController extends Controller
             return $this->errorResponse('Only volunteers can view impact summary.', [], 403);
         }
 
-        return $this->successResponse([
-            'counts' => $this->dashboardCounts($user->id),
-            'impact' => $this->impactSummary($user->id),
-        ]);
+        $volunteerId = $user->id;
+        $overview = $this->analyticsService->overview($volunteerId);
+
+        // Merge backward-compatible keys with new overview data
+        return $this->successResponse(array_merge(
+            [
+                'counts' => $this->dashboardCounts($volunteerId),
+                'impact' => $this->impactSummary($volunteerId),
+            ],
+            $overview,
+        ));
     }
 
     private function dashboardCounts(int $volunteerId): array
@@ -186,9 +260,8 @@ class VolunteerController extends Controller
             ->where('completed_at', '>=', now()->startOfWeek())
             ->count();
 
-        // We currently don't store explicit volunteer-assist ratings, so this uses user review averages as a fallback metric.
-        $avgRating = (float) (Review::query()
-            ->where('user_id', $volunteerId)
+        $avgRating = (float) (VolunteerReview::query()
+            ->where('volunteer_id', $volunteerId)
             ->avg('rating') ?? 0);
 
         return [

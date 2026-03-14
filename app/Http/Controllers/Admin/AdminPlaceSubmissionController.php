@@ -15,15 +15,42 @@ class AdminPlaceSubmissionController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = PlaceSubmission::query();
+        $query = PlaceSubmission::query()->with([
+            'submitter:id,name,full_name,email',
+            'category:id,name',
+            'reviewer:id,name,full_name,email',
+        ]);
+
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
 
         if ($request->filled('status')) {
             $query->where('status', (string) $request->query('status'));
         }
 
-        $submissions = $query->orderByDesc('id')->paginate(15);
+        if ($request->filled('search')) {
+            $search = (string) $validated['search'];
+            $query->where(function ($inner) use ($search) {
+                $inner
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('address', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%");
+            });
+        }
 
-        return response()->json($submissions);
+        $perPage = (int) ($validated['per_page'] ?? 15);
+        $submissions = $query->orderByDesc('id')->paginate($perPage);
+
+        return response()->json([
+            ...$submissions->toArray(),
+            'summary' => [
+                'pending' => PlaceSubmission::query()->where('status', 'pending')->count(),
+                'approved' => PlaceSubmission::query()->where('status', 'approved')->count(),
+                'rejected' => PlaceSubmission::query()->where('status', 'rejected')->count(),
+            ],
+        ]);
     }
 
     public function approve(ApprovePlaceSubmissionRequest $request, int $id): JsonResponse
