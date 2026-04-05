@@ -24,4 +24,26 @@ return [
     */
     'clearance_delay_days' => (int) env('ATHAR_CLEARANCE_DELAY_DAYS', 3),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Dashboard Cache Duration (seconds)
+    |--------------------------------------------------------------------------
+    |
+    | Time-to-live for cached /admin/dashboard payload. Set to 0 to disable
+    | dashboard caching.
+    |
+    */
+    'dashboard_cache_seconds' => (int) env('ATHAR_DASHBOARD_CACHE_SECONDS', 60),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Lists Cache Duration (seconds)
+    |--------------------------------------------------------------------------
+    |
+    | Time-to-live for cached admin index/list endpoints such as locations,
+    | help requests, place submissions, and accounts. Set to 0 to disable.
+    |
+    */
+    'admin_list_cache_seconds' => (int) env('ATHAR_ADMIN_LIST_CACHE_SECONDS', 60),
+
 ];

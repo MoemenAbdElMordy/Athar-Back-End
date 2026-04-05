@@ -20,6 +20,8 @@ class StoreHelpRequestRequest extends ApiFormRequest
 
             'payment_method' => ['required', 'string', Rule::in(['cash', 'card'])],
             'service_fee' => ['required', 'numeric', 'min:0'],
+            'hours' => ['nullable', 'integer', 'min:1', 'max:24'],
+            'price_per_hour' => ['nullable', 'numeric', 'min:0'],
 
             'from_label' => ['required', 'string', 'max:255'],
             'from_lat' => ['required', 'numeric', 'between:-90,90'],

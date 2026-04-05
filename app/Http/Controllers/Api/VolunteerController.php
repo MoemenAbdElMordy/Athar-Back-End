@@ -70,7 +70,7 @@ class VolunteerController extends Controller
 
         $query = HelpRequest::query()
             ->where('status', 'pending')
-            ->with(['requester', 'volunteer'])
+            ->with(['requester', 'volunteer', 'payment'])
             ->orderByRaw("CASE urgency_level WHEN 'high' THEN 3 WHEN 'medium' THEN 2 ELSE 1 END DESC")
             ->latest();
 
@@ -110,8 +110,8 @@ class VolunteerController extends Controller
 
         $query = HelpRequest::query()
             ->where('volunteer_id', $user->id)
-            ->where('status', 'active')
-            ->with(['requester', 'volunteer'])
+            ->whereIn('status', ['active', 'confirmed', 'pending_payment'])
+            ->with(['requester', 'volunteer', 'payment'])
             ->latest('accepted_at')
             ->latest('id');
 
@@ -152,6 +152,12 @@ class VolunteerController extends Controller
             Carbon::now()->endOfMonth()->toDateTimeString(),
         );
 
+        $thisWeekNet = $this->analyticsService->netEarningsCents(
+            $volunteerId,
+            Carbon::now()->startOfWeek(Carbon::SATURDAY)->toDateTimeString(),
+            Carbon::now()->endOfWeek(Carbon::FRIDAY)->toDateTimeString(),
+        );
+
         // ── Query with filters ──
         $status = $validated['status'] ?? 'completed';
         $query = HelpRequest::query()
@@ -190,6 +196,8 @@ class VolunteerController extends Controller
             // new History tab contract
             'summary' => [
                 'requests_this_week' => $requestsThisWeek,
+                'this_week_net' => round($thisWeekNet / 100, 2),
+                'current_month_net' => round($thisMonthNet / 100, 2),
                 'this_month_net_earnings' => round($thisMonthNet / 100, 2),
                 'currency' => 'EGP',
             ],
@@ -237,7 +245,7 @@ class VolunteerController extends Controller
         return [
             'incoming' => HelpRequest::query()->where('status', 'pending')->count(),
             'active' => HelpRequest::query()
-                ->where('status', 'active')
+                ->whereIn('status', ['active', 'confirmed', 'pending_payment'])
                 ->where('volunteer_id', $volunteerId)
                 ->count(),
             'history' => HelpRequest::query()

@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\PrivacySettingController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SupportTicketController;
+use App\Http\Controllers\Api\TutorialController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VolunteerController;
 use App\Http\Controllers\Api\VolunteerAnalyticsController;
@@ -32,6 +33,8 @@ Route::middleware('json.accept')->group(function (): void {
 
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/governments', [GovernmentController::class, 'index']);
+    Route::get('/tutorials', [TutorialController::class, 'index']);
+    Route::post('/tutorials/{id}/view', [TutorialController::class, 'trackView']);
     Route::get('/locations', [LocationController::class, 'index']);
     Route::get('/locations/nearby', [LocationController::class, 'nearby']);
     Route::get('/locations/{id}', [LocationController::class, 'show']);

@@ -1,0 +1,5 @@
+login_status=200
+http://127.0.0.1:8000/admin/locations first=200/167ms second=200/107ms
+http://127.0.0.1:8000/admin/help-requests first=200/111ms second=200/73ms
+http://127.0.0.1:8000/admin/accounts first=200/259ms second=200/123ms
+http://127.0.0.1:8000/admin/place-submissions first=200/102ms second=200/86ms

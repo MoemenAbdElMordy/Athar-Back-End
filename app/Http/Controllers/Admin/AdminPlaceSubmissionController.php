@@ -10,11 +10,32 @@ use App\Models\PlaceSubmission;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class AdminPlaceSubmissionController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $cacheSeconds = max((int) config('athar.admin_list_cache_seconds', 60), 0);
+        $refreshRequested = filter_var($request->query('refresh', false), FILTER_VALIDATE_BOOL);
+        $queryParams = $request->query();
+        unset($queryParams['refresh']);
+
+        if ($cacheSeconds > 0 && !$refreshRequested) {
+            $adminId = Auth::guard('web')->id();
+            $cacheKey = sprintf(
+                'admin_place_submissions:index:%d:%d:%s',
+                (int) $adminId,
+                $this->cacheVersion(),
+                sha1(http_build_query($queryParams)),
+            );
+
+            $cachedPayload = Cache::get($cacheKey);
+            if (is_array($cachedPayload)) {
+                return response()->json($cachedPayload);
+            }
+        }
+
         $query = PlaceSubmission::query()->with([
             'submitter:id,name,full_name,email',
             'category:id,name',
@@ -42,15 +63,27 @@ class AdminPlaceSubmissionController extends Controller
 
         $perPage = (int) ($validated['per_page'] ?? 15);
         $submissions = $query->orderByDesc('id')->paginate($perPage);
-
-        return response()->json([
+        $payload = [
             ...$submissions->toArray(),
             'summary' => [
                 'pending' => PlaceSubmission::query()->where('status', 'pending')->count(),
                 'approved' => PlaceSubmission::query()->where('status', 'approved')->count(),
                 'rejected' => PlaceSubmission::query()->where('status', 'rejected')->count(),
             ],
-        ]);
+        ];
+
+        if ($cacheSeconds > 0) {
+            $adminId = Auth::guard('web')->id();
+            $cacheKey = sprintf(
+                'admin_place_submissions:index:%d:%d:%s',
+                (int) $adminId,
+                $this->cacheVersion(),
+                sha1(http_build_query($queryParams)),
+            );
+            Cache::put($cacheKey, $payload, now()->addSeconds($cacheSeconds));
+        }
+
+        return response()->json($payload);
     }
 
     public function approve(ApprovePlaceSubmissionRequest $request, int $id): JsonResponse
@@ -87,7 +120,11 @@ class AdminPlaceSubmissionController extends Controller
                 'longitude' => $submission->lng,
                 'category_id' => $submission->category_id,
             ]);
+
+            Cache::forever('admin_locations:version', max((int) Cache::get('admin_locations:version', 1), 1) + 1);
         }
+
+        $this->bumpCacheVersion();
 
         return response()->json([
             'success' => true,
@@ -116,9 +153,21 @@ class AdminPlaceSubmissionController extends Controller
         $submission->rejection_reason = $request->validated()['rejection_reason'];
         $submission->save();
 
+        $this->bumpCacheVersion();
+
         return response()->json([
             'success' => true,
             'submission' => $submission,
         ]);
+    }
+
+    private function cacheVersion(): int
+    {
+        return max((int) Cache::get('admin_place_submissions:version', 1), 1);
+    }
+
+    private function bumpCacheVersion(): void
+    {
+        Cache::forever('admin_place_submissions:version', $this->cacheVersion() + 1);
     }
 }

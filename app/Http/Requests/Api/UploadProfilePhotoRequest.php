@@ -12,7 +12,7 @@ class UploadProfilePhotoRequest extends ApiFormRequest
     public function rules(): array
     {
         return [
-            'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'photo' => ['required', 'file', 'extensions:jpg,jpeg,png,webp', 'max:5120'],
         ];
     }
 }

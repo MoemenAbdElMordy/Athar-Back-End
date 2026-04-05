@@ -2,7 +2,7 @@
 
 return [
 
-    'paths' => ['admin/*'],
+    'paths' => ['admin/*', 'api/*'],
 
     'allowed_methods' => ['*'],
 

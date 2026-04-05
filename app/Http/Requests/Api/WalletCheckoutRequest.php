@@ -16,7 +16,9 @@ class WalletCheckoutRequest extends ApiFormRequest
     {
         return [
             'booking_id' => ['nullable', 'integer', 'exists:bookings,id'],
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'help_request_id' => ['nullable', 'integer', 'exists:help_requests,id'],
+            'request_id' => ['nullable', 'integer', 'exists:help_requests,id'],
+            'user_id' => ['prohibited'],
             'amount_egp' => ['required', 'numeric', 'min:1'],
             'currency' => ['required', 'string', 'in:EGP'],
             'first_name' => ['required', 'string', 'max:100'],

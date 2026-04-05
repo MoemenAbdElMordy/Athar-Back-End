@@ -27,7 +27,8 @@ class VolunteerAnalyticsController extends Controller
 
     public function earnings(VolunteerAnalyticsEarningsRequest $request): JsonResponse
     {
-        $data = $this->earningsService->earnings($request->user()->id);
+        $months = (int) ($request->validated()['months'] ?? 6);
+        $data = $this->earningsService->earnings($request->user()->id, $months);
 
         return $this->successResponse(new VolunteerEarningsResource($data));
     }

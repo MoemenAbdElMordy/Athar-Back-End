@@ -1,0 +1,2 @@
+STATUS:200
+{"success":true,"user":{"id":1,"email":"admin@example.com","role":"admin"}}

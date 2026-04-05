@@ -1,0 +1,10 @@
+HTTP/1.1 500 Internal Server Error
+Host: 127.0.0.1:8000
+Connection: close
+X-Powered-By: PHP/8.5.4
+Cache-Control: no-cache, private
+Date: Wed, 25 Mar 2026 16:14:35 GMT
+Content-Type: application/json
+Access-Control-Allow-Origin: http://localhost:3000
+Access-Control-Allow-Credentials: true
+

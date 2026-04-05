@@ -13,6 +13,8 @@ use App\Services\VolunteerPerformanceService;
 use App\Services\VolunteerReviewsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
@@ -42,14 +44,36 @@ class AdminAccountController extends Controller
             'is_active' => (bool) ($data['is_active'] ?? true),
         ]);
 
+        $this->bumpCacheVersion();
+
         return response()->json([
             'success' => true,
             'user' => $user,
         ], 201);
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $cacheSeconds = max((int) config('athar.admin_list_cache_seconds', 60), 0);
+        $refreshRequested = filter_var($request->query('refresh', false), FILTER_VALIDATE_BOOL);
+        $queryParams = $request->query();
+        unset($queryParams['refresh']);
+
+        if ($cacheSeconds > 0 && !$refreshRequested) {
+            $adminId = Auth::guard('web')->id();
+            $cacheKey = sprintf(
+                'admin_accounts:index:%d:%d:%s',
+                (int) $adminId,
+                $this->cacheVersion(),
+                sha1(http_build_query($queryParams)),
+            );
+
+            $cachedPayload = Cache::get($cacheKey);
+            if (is_array($cachedPayload)) {
+                return response()->json($cachedPayload);
+            }
+        }
+
         $pendingVolunteerCount = User::query()
             ->where('role', 'volunteer')
             ->whereNull('role_verified_at')
@@ -77,8 +101,20 @@ class AdminAccountController extends Controller
             'created_at',
         ];
 
+        $pendingVolunteerSelect = [
+            ...$baseSelect,
+            'city',
+            'national_id',
+            'date_of_birth',
+            'volunteer_languages',
+            'volunteer_availability',
+            'volunteer_motivation',
+            'id_document_path',
+            'certification_document_path',
+        ];
+
         $pendingVolunteerRequests = User::query()
-            ->select($baseSelect)
+            ->select($pendingVolunteerSelect)
             ->where('role', 'volunteer')
             ->whereNull('role_verified_at')
             ->orderByDesc('id')
@@ -130,7 +166,7 @@ class AdminAccountController extends Controller
                 return $u;
             });
 
-        return response()->json([
+        $payload = [
             'counts' => [
                 'users' => $userCount,
                 'volunteers' => $volunteerCount,
@@ -139,7 +175,20 @@ class AdminAccountController extends Controller
             'pending_volunteer_requests' => $pendingVolunteerRequests,
             'volunteer_accounts' => $volunteerAccounts,
             'user_accounts' => $userAccounts,
-        ]);
+        ];
+
+        if ($cacheSeconds > 0) {
+            $adminId = Auth::guard('web')->id();
+            $cacheKey = sprintf(
+                'admin_accounts:index:%d:%d:%s',
+                (int) $adminId,
+                $this->cacheVersion(),
+                sha1(http_build_query($queryParams)),
+            );
+            Cache::put($cacheKey, $payload, now()->addSeconds($cacheSeconds));
+        }
+
+        return response()->json($payload);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -205,6 +254,7 @@ class AdminAccountController extends Controller
         }
 
         $user->save();
+        $this->bumpCacheVersion();
 
         return response()->json([
             'success' => true,
@@ -225,6 +275,7 @@ class AdminAccountController extends Controller
         }
 
         $user->delete();
+        $this->bumpCacheVersion();
 
         return response()->json([
             'success' => true,
@@ -247,6 +298,7 @@ class AdminAccountController extends Controller
         $user->role_locked = true;
         $user->is_active = true;
         $user->save();
+        $this->bumpCacheVersion();
 
         return response()->json([
             'success' => true,
@@ -270,6 +322,7 @@ class AdminAccountController extends Controller
         $user->role_verified_at = null;
         $user->role_locked = false;
         $user->save();
+        $this->bumpCacheVersion();
 
         return response()->json([
             'success' => true,
@@ -321,5 +374,15 @@ class AdminAccountController extends Controller
                 ],
             ],
         ]);
+    }
+
+    private function cacheVersion(): int
+    {
+        return max((int) Cache::get('admin_accounts:version', 1), 1);
+    }
+
+    private function bumpCacheVersion(): void
+    {
+        Cache::forever('admin_accounts:version', $this->cacheVersion() + 1);
     }
 }

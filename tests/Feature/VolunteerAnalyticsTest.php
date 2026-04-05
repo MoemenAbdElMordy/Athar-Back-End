@@ -117,6 +117,40 @@ class VolunteerAnalyticsTest extends TestCase
         $this->assertEquals(70.00, $response->json('data.summary.net_earnings_all_time'));
     }
 
+    public function test_impact_weekly_activity_includes_compatibility_keys_and_counts_legacy_completed_requests(): void
+    {
+        $this->createCompletedRequest([
+            'completed_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
+            'service_fee' => 10000,
+        ]);
+
+        // Legacy-like completed record where completed_at is missing.
+        $this->createCompletedRequest([
+            'completed_at' => null,
+            'updated_at' => now(),
+            'service_fee' => 5000,
+        ]);
+
+        Sanctum::actingAs($this->volunteer);
+        $response = $this->getJson('/api/volunteer/impact');
+        $response->assertOk();
+
+        $weekly = $response->json('data.weekly_activity');
+        $this->assertCount(7, $weekly);
+
+        $today = collect($weekly)->firstWhere('date', now()->toDateString());
+        $this->assertNotNull($today);
+        $this->assertArrayHasKey('count', $today);
+        $this->assertArrayHasKey('earnings', $today);
+        $this->assertArrayHasKey('completed_requests', $today);
+        $this->assertArrayHasKey('net_earnings', $today);
+        $this->assertGreaterThanOrEqual(1, (int) $today['count']);
+
+        $totalCompleted = collect($weekly)->sum(fn (array $day) => (int) ($day['completed_requests'] ?? 0));
+        $this->assertEquals(2, $totalCompleted);
+    }
+
     public function test_impact_requires_volunteer_role(): void
     {
         Sanctum::actingAs($this->requester);
@@ -258,6 +292,17 @@ class VolunteerAnalyticsTest extends TestCase
         $this->assertEquals(56.00, $summary['pending_clearance']);
     }
 
+    public function test_earnings_respects_months_query_param(): void
+    {
+        $this->createCompletedRequest(['service_fee' => 10000]);
+
+        Sanctum::actingAs($this->volunteer);
+        $response = $this->getJson('/api/volunteer/analytics/earnings?months=3');
+        $response->assertOk();
+
+        $this->assertCount(3, $response->json('data.monthly_net_earnings'));
+    }
+
     // ─── 4. GET /api/volunteer/analytics/performance ──────────
 
     public function test_performance_returns_correct_structure(): void
@@ -315,6 +360,39 @@ class VolunteerAnalyticsTest extends TestCase
 
         // 3 completed out of 4 assigned = 75%
         $this->assertEquals(75.0, $response->json('data.metrics.on_time_rate'));
+    }
+
+    public function test_performance_on_time_rate_ignores_unassigned_completed_requests(): void
+    {
+        // Completed request without accepted_at should not be part of assigned on-time numerator.
+        $this->createCompletedRequest([
+            'accepted_at' => null,
+            'completed_at' => now()->subHour(),
+        ]);
+
+        HelpRequest::create([
+            'requester_id' => $this->requester->id,
+            'user_id' => $this->requester->id,
+            'volunteer_id' => $this->volunteer->id,
+            'status' => 'cancelled',
+            'payment_method' => 'cash',
+            'service_fee' => 0,
+            'fee_amount_cents' => 0,
+            'net_amount_cents' => 0,
+            'urgency_level' => 'low',
+            'assistance_type' => 'navigation',
+            'from_name' => 'A',
+            'from_lat' => 30.0,
+            'from_lng' => 31.0,
+            'accepted_at' => now()->subHours(3),
+            'cancelled_at' => now()->subHours(2),
+        ]);
+
+        Sanctum::actingAs($this->volunteer);
+        $response = $this->getJson('/api/volunteer/analytics/performance');
+        $response->assertOk();
+
+        $this->assertEquals(0.0, $response->json('data.metrics.on_time_rate'));
     }
 
     public function test_performance_badges_top_rated(): void

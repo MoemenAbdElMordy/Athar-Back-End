@@ -30,8 +30,8 @@ return [
     | Card and wallet integration IDs from your Paymob dashboard.
     |
     */
-    'card_integration_id' => env('PAYMOB_CARD_INTEGRATION_ID', ''),
-    'wallet_integration_id' => env('PAYMOB_WALLET_INTEGRATION_ID', ''),
+    'card_integration_id' => env('PAYMOB_CARD_INTEGRATION_ID', env('PAYMOB_INTEGRATION_ID', '')),
+    'wallet_integration_id' => env('PAYMOB_WALLET_INTEGRATION_ID', env('PAYMOB_MOBILE_WALLET_INTEGRATION_ID', '')),
 
     /*
     |--------------------------------------------------------------------------
@@ -51,6 +51,6 @@ return [
     | Used to verify the authenticity of Paymob callback/webhook requests.
     |
     */
-    'hmac_secret' => env('PAYMOB_HMAC_SECRET', ''),
+    'hmac_secret' => env('PAYMOB_HMAC_SECRET', env('PAYMOB_HMAC', '')),
 
 ];

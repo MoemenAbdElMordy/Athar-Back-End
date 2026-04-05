@@ -8,6 +8,8 @@ use App\Http\Requests\Admin\UpdateLocationRequest;
 use App\Models\Location;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class AdminLocationController extends Controller
 {
@@ -26,6 +28,26 @@ class AdminLocationController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $cacheSeconds = max((int) config('athar.admin_list_cache_seconds', 60), 0);
+        $refreshRequested = filter_var($request->query('refresh', false), FILTER_VALIDATE_BOOL);
+        $queryParams = $request->query();
+        unset($queryParams['refresh']);
+
+        if ($cacheSeconds > 0 && !$refreshRequested) {
+            $adminId = Auth::guard('web')->id();
+            $cacheKey = sprintf(
+                'admin_locations:index:%d:%d:%s',
+                (int) $adminId,
+                $this->cacheVersion(),
+                sha1(http_build_query($queryParams)),
+            );
+
+            $cachedPayload = Cache::get($cacheKey);
+            if (is_array($cachedPayload)) {
+                return response()->json($cachedPayload);
+            }
+        }
+
         $query = Location::query()
             ->with(['category:id,name', 'government:id,accessible_locations', 'accessibilityReport']);
 
@@ -62,13 +84,26 @@ class AdminLocationController extends Controller
 
         $perPage = (int) ($validated['per_page'] ?? 15);
         $locations = $query->orderByDesc('id')->paginate($perPage);
+        $payload = $locations->toArray();
 
-        return response()->json($locations);
+        if ($cacheSeconds > 0) {
+            $adminId = Auth::guard('web')->id();
+            $cacheKey = sprintf(
+                'admin_locations:index:%d:%d:%s',
+                (int) $adminId,
+                $this->cacheVersion(),
+                sha1(http_build_query($queryParams)),
+            );
+            Cache::put($cacheKey, $payload, now()->addSeconds($cacheSeconds));
+        }
+
+        return response()->json($payload);
     }
 
     public function store(StoreLocationRequest $request): JsonResponse
     {
         $location = Location::create($request->validated());
+        $this->bumpCacheVersion();
 
         return response()->json(
             $location->load(['category', 'government', 'accessibilityReport']),
@@ -85,6 +120,7 @@ class AdminLocationController extends Controller
         }
 
         $location->update($request->validated());
+        $this->bumpCacheVersion();
 
         return response()->json($location->load(['category', 'government', 'accessibilityReport']));
     }
@@ -98,7 +134,18 @@ class AdminLocationController extends Controller
         }
 
         $location->delete();
+        $this->bumpCacheVersion();
 
         return response()->json(['success' => true]);
+    }
+
+    private function cacheVersion(): int
+    {
+        return max((int) Cache::get('admin_locations:version', 1), 1);
+    }
+
+    private function bumpCacheVersion(): void
+    {
+        Cache::forever('admin_locations:version', $this->cacheVersion() + 1);
     }
 }

@@ -1,0 +1,7 @@
+{
+    "message": "Declaration of Carbon\\CarbonPeriod::getIterator(): Generator must be compatible with DatePeriod::getIterator(): Iterator",
+    "exception": "Symfony\\Component\\ErrorHandler\\Error\\FatalError",
+    "file": "D:\\BIS\\BIS S8\\Grade 2\\Athar website\\Athar back-end\\Athar Back-End\\vendor\\nesbot\\carbon\\src\\Carbon\\CarbonPeriod.php",
+    "line": 329,
+    "trace": []
+}

@@ -75,42 +75,104 @@ class VolunteerAnalyticsService
     }
 
     /**
-     * Completed requests per day for the current week (Sat–Fri).
+     * Completed requests per day for the last 7 days (rolling).
+     *
+     * Includes compatibility aliases used by older/mobile clients.
      */
     public function weeklyActivity(int $volunteerId): array
     {
-        $labels = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+        $today = Carbon::now();
+        $activity = $this->weeklyActivityForEndDate($volunteerId, $today);
 
-        // Start of week = Saturday
-        $startOfWeek = Carbon::now()->startOfWeek(Carbon::SATURDAY);
-        $endOfWeek = $startOfWeek->copy()->addDays(7);
+        $totalInWindow = array_sum(array_map(
+            static fn (array $day): int => (int) ($day['completed_requests'] ?? 0),
+            $activity,
+        ));
+
+        if ($totalInWindow > 0) {
+            return $activity;
+        }
+
+        $latestRequest = HelpRequest::query()
+            ->where('volunteer_id', $volunteerId)
+            ->where('status', 'completed')
+            ->where(function ($query) {
+                $query->whereNotNull('completed_at')
+                    ->orWhereNotNull('updated_at');
+            })
+            ->orderByDesc('completed_at')
+            ->orderByDesc('updated_at')
+            ->first(['completed_at', 'updated_at']);
+
+        $latestActivityAt = $latestRequest?->completed_at ?? $latestRequest?->updated_at;
+
+        if (!$latestActivityAt) {
+            return $activity;
+        }
+
+        return $this->weeklyActivityForEndDate($volunteerId, Carbon::parse($latestActivityAt));
+    }
+
+    private function weeklyActivityForEndDate(int $volunteerId, Carbon $endDate): array
+    {
+        $start = $endDate->copy()->subDays(6)->startOfDay();
+        $end = $endDate->copy()->endOfDay();
+
+        $days = [];
+
+        for ($i = 6; $i >= 0; $i--) {
+            $day = $endDate->copy()->subDays($i);
+            $dateKey = $day->toDateString();
+
+            $days[$dateKey] = [
+                'label' => $day->format('D'),
+                'day' => $day->format('D'),
+                'date' => $dateKey,
+                'completed_requests' => 0,
+                'count' => 0,
+                'net_earnings' => 0.0,
+                'earnings' => 0.0,
+            ];
+        }
 
         $requests = HelpRequest::query()
             ->where('volunteer_id', $volunteerId)
             ->where('status', 'completed')
-            ->whereBetween('completed_at', [$startOfWeek, $endOfWeek])
-            ->get(['completed_at']);
+            ->where(function ($query) use ($start, $end) {
+                $query
+                    ->whereBetween('completed_at', [$start, $end])
+                    ->orWhere(function ($fallback) use ($start, $end) {
+                        $fallback->whereNull('completed_at')
+                            ->whereBetween('updated_at', [$start, $end]);
+                    });
+            })
+            ->get(['completed_at', 'updated_at', 'net_amount_cents', 'service_fee']);
 
-        // Count per day-of-week using PHP (DB-engine agnostic)
-        $counts = array_fill(0, 7, 0);
-        foreach ($requests as $r) {
-            if ($r->completed_at) {
-                // Carbon dayOfWeek: 0=Sun,...,6=Sat → map to Sat-Fri index
-                $carbonDow = $r->completed_at->dayOfWeek; // 0=Sun,...,6=Sat
-                $satIndex = ($carbonDow + 1) % 7; // Sat=0,Sun=1,...,Fri=6
-                $counts[$satIndex]++;
+        foreach ($requests as $request) {
+            $completedAt = $request->completed_at ?? $request->updated_at;
+
+            if (!$completedAt) {
+                continue;
             }
+
+            $dateKey = $completedAt->toDateString();
+
+            if (!isset($days[$dateKey])) {
+                continue;
+            }
+
+            $netAmountCents = (int) ($request->net_amount_cents ?? 0);
+            if ($netAmountCents <= 0) {
+                $netAmountCents = (int) ($request->service_fee ?? 0);
+            }
+
+            $days[$dateKey]['completed_requests']++;
+            $days[$dateKey]['count']++;
+            $days[$dateKey]['net_earnings'] = round($days[$dateKey]['net_earnings'] + ($netAmountCents / 100), 2);
+            $days[$dateKey]['earnings'] = $days[$dateKey]['net_earnings'];
         }
 
-        $result = [];
-        foreach ($labels as $i => $label) {
-            $result[] = [
-                'label' => $label,
-                'completed_requests' => $counts[$i],
-            ];
-        }
-
-        return $result;
+        return array_values($days);
     }
 
     /**
@@ -158,13 +220,27 @@ class VolunteerAnalyticsService
             ->where('service_fee', '>', 0);
 
         if ($from) {
-            $q->where('completed_at', '>=', $from);
+            $q->where(function ($query) use ($from) {
+                $query
+                    ->where('completed_at', '>=', $from)
+                    ->orWhere(function ($fallback) use ($from) {
+                        $fallback->whereNull('completed_at')
+                            ->where('updated_at', '>=', $from);
+                    });
+            });
         }
         if ($to) {
-            $q->where('completed_at', '<=', $to);
+            $q->where(function ($query) use ($to) {
+                $query
+                    ->where('completed_at', '<=', $to)
+                    ->orWhere(function ($fallback) use ($to) {
+                        $fallback->whereNull('completed_at')
+                            ->where('updated_at', '<=', $to);
+                    });
+            });
         }
 
-        return (int) $q->sum('net_amount_cents');
+        return (int) $q->sum(DB::raw('CASE WHEN net_amount_cents > 0 THEN net_amount_cents ELSE service_fee END'));
     }
 
     private function netEarningsCentsForMonth(int $volunteerId, int $year, int $month): int

@@ -15,6 +15,7 @@ use App\Models\VolunteerReview;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -24,6 +25,17 @@ class AdminDashboardController extends Controller
     public function __invoke(): JsonResponse
     {
         $adminId = Auth::guard('web')->id();
+        $cacheSeconds = max((int) config('athar.dashboard_cache_seconds', 60), 0);
+        $cacheKey = "admin_dashboard:{$adminId}";
+
+        $refreshRequested = filter_var(request('refresh', false), FILTER_VALIDATE_BOOL);
+
+        if ($cacheSeconds > 0 && !$refreshRequested) {
+            $cachedPayload = Cache::get($cacheKey);
+            if (is_array($cachedPayload)) {
+                return response()->json($cachedPayload);
+            }
+        }
 
         $hasVolunteerReviews = Schema::hasTable('volunteer_reviews');
         $hasFeeColumns = Schema::hasColumn('help_requests', 'fee_amount_cents');
@@ -39,6 +51,14 @@ class AdminDashboardController extends Controller
         $activeHelpRequests = HelpRequest::query()->whereIn('status', ['active', 'confirmed', 'pending_payment'])->count();
         $completedHelpRequests = HelpRequest::query()->where('status', 'completed')->count();
         $cancelledHelpRequests = HelpRequest::query()->where('status', 'cancelled')->count();
+
+        // Count requests where online payment has been confirmed (paid), regardless of request status
+        $paidHelpRequests = HelpRequest::query()
+            ->whereIn('payment_method', ['card', 'wallet'])
+            ->whereHas('payment', function ($q) {
+                $q->where('status', 'paid')->where('success', true);
+            })
+            ->count();
 
         $totalLocations = Location::query()->count();
         $pendingSubmissions = PlaceSubmission::query()->where('status', 'pending')->count();
@@ -85,6 +105,7 @@ class AdminDashboardController extends Controller
         $statusBreakdown = [
             ['status' => 'pending', 'count' => $pendingHelpRequests],
             ['status' => 'active', 'count' => $activeHelpRequests],
+            ['status' => 'paid', 'count' => $paidHelpRequests],
             ['status' => 'completed', 'count' => $completedHelpRequests],
             ['status' => 'cancelled', 'count' => $cancelledHelpRequests],
         ];
@@ -203,7 +224,7 @@ class AdminDashboardController extends Controller
                 'completed_at' => $hr->completed_at?->toIso8601String(),
             ]);
 
-        return response()->json([
+        $payload = [
             'counts' => [
                 'locations' => $totalLocations,
                 'categories' => Category::query()->count(),
@@ -216,6 +237,7 @@ class AdminDashboardController extends Controller
                 'pending_volunteers' => $pendingVolunteers,
                 'total_help_requests' => $totalHelpRequests,
                 'active_help_requests' => $activeHelpRequests,
+                'paid_help_requests' => $paidHelpRequests,
                 'completed_help_requests' => $completedHelpRequests,
                 'cancelled_help_requests' => $cancelledHelpRequests,
             ],
@@ -247,7 +269,13 @@ class AdminDashboardController extends Controller
             'recent_reports' => $recentReports,
             'recent_tutorials' => $recentTutorials,
             'recent_completed' => $recentCompleted,
-        ]);
+        ];
+
+        if ($cacheSeconds > 0) {
+            Cache::put($cacheKey, $payload, now()->addSeconds($cacheSeconds));
+        }
+
+        return response()->json($payload);
     }
 
     private function monthlyTrends(bool $hasFeeColumns): array

@@ -13,12 +13,14 @@ class Tutorial extends Model
         'thumbnail_url',
         'category',
         'is_published',
+        'views_count',
     ];
 
     protected function casts(): array
     {
         return [
             'is_published' => 'boolean',
+            'views_count' => 'integer',
         ];
     }
 }

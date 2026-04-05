@@ -35,9 +35,12 @@ class PaymentController extends Controller
             $amountCents = $request->amountCents();
 
             // 1. Create local payment record
+            $helpRequestId = $data['help_request_id'] ?? $data['request_id'] ?? null;
+
             $payment = Payment::create([
                 'booking_id' => $data['booking_id'] ?? null,
-                'user_id' => $data['user_id'] ?? null,
+                'help_request_id' => $helpRequestId,
+                'user_id' => $request->user()->id,
                 'payment_method' => 'card',
                 'amount_cents' => $amountCents,
                 'total_amount' => $data['amount_egp'],
@@ -93,9 +96,12 @@ class PaymentController extends Controller
             $amountCents = $request->amountCents();
 
             // 1. Create local payment record
+            $helpRequestId = $data['help_request_id'] ?? $data['request_id'] ?? null;
+
             $payment = Payment::create([
                 'booking_id' => $data['booking_id'] ?? null,
-                'user_id' => $data['user_id'] ?? null,
+                'help_request_id' => $helpRequestId,
+                'user_id' => $request->user()->id,
                 'payment_method' => 'wallet',
                 'amount_cents' => $amountCents,
                 'total_amount' => $data['amount_egp'],
@@ -150,15 +156,65 @@ class PaymentController extends Controller
     {
         try {
             $payload = $request->all();
+            $obj = $payload['obj'] ?? $payload;
 
             Log::info('Paymob callback received', ['keys' => array_keys($payload)]);
 
+            $isPaymobStructuredPayload = isset($payload['obj'])
+                || data_get($obj, 'order.id')
+                || data_get($obj, 'order_id')
+                || data_get($obj, 'order.merchant_order_id')
+                || data_get($obj, 'merchant_order_id');
+
+            $sanctumUser = $request->user('sanctum');
+            $rawLocalPaymentId = (string) data_get($payload, 'id', '');
+            $localPaymentId = ctype_digit($rawLocalPaymentId) ? (int) $rawLocalPaymentId : null;
+            $allowLocalIdFallback = ! $isPaymobStructuredPayload
+                && $sanctumUser !== null
+                && $localPaymentId !== null;
+
+            // App-side confirmation: {id: paymentId, success: true} without auth.
+            // Try to find and refresh the payment directly from Paymob gateway.
+            $isAppConfirmation = ! $isPaymobStructuredPayload
+                && $localPaymentId !== null
+                && (bool) data_get($payload, 'success', false);
+
+            if ($isAppConfirmation && ! $allowLocalIdFallback) {
+                $candidate = Payment::query()->find($localPaymentId);
+                if ($candidate && $candidate->paymob_order_id) {
+                    try {
+                        $refreshed = $this->paymobService->refreshPaymentStatus($candidate);
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Payment status refreshed.',
+                            'data' => [
+                                'payment_id' => $refreshed->id,
+                                'status' => $refreshed->status,
+                                'success' => $refreshed->success,
+                            ],
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::warning('App confirmation refresh failed', [
+                            'payment_id' => $localPaymentId,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
             // HMAC verification (Paymob sends hmac in query string or header)
             $receivedHmac = $request->query('hmac', $request->header('X-Hmac', ''));
+            $hmacSecretConfigured = trim((string) config('paymob.hmac_secret')) !== '';
 
-            $obj = $payload['obj'] ?? $payload;
+            if (! $allowLocalIdFallback && ! $isAppConfirmation && $hmacSecretConfigured && trim((string) $receivedHmac) === '') {
+                Log::warning('Paymob callback missing HMAC while secret is configured');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing HMAC signature.',
+                ], 403);
+            }
 
-            if ($receivedHmac && ! $this->paymobService->verifyCallback($obj, $receivedHmac)) {
+            if (! $allowLocalIdFallback && $receivedHmac && ! $this->paymobService->verifyCallback($obj, $receivedHmac)) {
                 Log::warning('Paymob callback HMAC verification failed');
                 return response()->json([
                     'success' => false,
@@ -167,7 +223,12 @@ class PaymentController extends Controller
             }
 
             // Process the callback
-            $payment = $this->paymobService->handleTransactionCallback($payload);
+            $payment = $this->paymobService->handleTransactionCallback(
+                $payload,
+                ($allowLocalIdFallback || $isAppConfirmation) ? $localPaymentId : null,
+                $sanctumUser?->id,
+                $sanctumUser?->role === 'admin',
+            );
 
             if (! $payment) {
                 return response()->json([
@@ -205,9 +266,9 @@ class PaymentController extends Controller
      *
      * Fetch payment status for polling from the mobile app.
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $payment = Payment::find($id);
+        $payment = $this->resolvePaymentForUser($request, $id);
 
         if (! $payment) {
             return $this->errorResponse('Payment not found.', [], 404);
@@ -221,9 +282,9 @@ class PaymentController extends Controller
      *
      * Fallback polling refresh that pulls latest status from Paymob.
      */
-    public function refresh(int $id): JsonResponse
+    public function refresh(Request $request, int $id): JsonResponse
     {
-        $payment = Payment::find($id);
+        $payment = $this->resolvePaymentForUser($request, $id);
 
         if (! $payment) {
             return $this->errorResponse('Payment not found.', [], 404);
@@ -244,5 +305,16 @@ class PaymentController extends Controller
 
             return $this->errorResponse('Unable to refresh payment status at the moment.', [], 500);
         }
+    }
+
+    private function resolvePaymentForUser(Request $request, int $paymentId): ?Payment
+    {
+        $query = Payment::query()->whereKey($paymentId);
+
+        if ($request->user()->role !== 'admin') {
+            $query->where('user_id', $request->user()->id);
+        }
+
+        return $query->first();
     }
 }

@@ -17,6 +17,8 @@ class HelpRequest extends Model
         'status',
         'payment_method',
         'service_fee',
+        'hours',
+        'price_per_hour',
         'urgency_level',
         'assistance_type',
         'details',

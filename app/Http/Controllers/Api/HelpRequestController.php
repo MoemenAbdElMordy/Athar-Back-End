@@ -40,6 +40,8 @@ class HelpRequestController extends Controller
             'details' => $data['details'] ?? null,
             'payment_method' => $data['payment_method'],
             'service_fee' => (int) round(($data['service_fee'] ?? 0) * 100),
+            'hours' => (int) ($data['hours'] ?? 1),
+            'price_per_hour' => (int) round(($data['price_per_hour'] ?? 0) * 100),
             'from_name' => $data['from_label'],
             'from_lat' => $data['from_lat'],
             'from_lng' => $data['from_lng'],
@@ -49,7 +51,7 @@ class HelpRequestController extends Controller
             'status' => 'pending',
         ]);
 
-        $helpRequest->load(['requester', 'volunteer']);
+        $helpRequest->load(['requester', 'volunteer', 'payment']);
 
         broadcast(new HelpRequestCreated($helpRequest))->toOthers();
 
@@ -65,7 +67,7 @@ class HelpRequestController extends Controller
 
         $query = HelpRequest::query()
             ->where('requester_id', $request->user()->id)
-            ->with(['requester', 'volunteer'])
+            ->with(['requester', 'volunteer', 'payment'])
             ->latest();
 
         if (!empty($validated['status']) && $validated['status'] !== 'all') {
@@ -103,7 +105,7 @@ class HelpRequestController extends Controller
         $helpRequest->cancelled_at = now();
         $helpRequest->save();
 
-        $helpRequest->load(['requester', 'volunteer']);
+        $helpRequest->load(['requester', 'volunteer', 'payment']);
 
         broadcast(new HelpRequestUpdated($helpRequest))->toOthers();
 
@@ -137,7 +139,7 @@ class HelpRequestController extends Controller
         }
 
         $helpRequest->save();
-        $helpRequest->load(['requester', 'volunteer']);
+        $helpRequest->load(['requester', 'volunteer', 'payment']);
 
         Notification::create([
             'user_id' => $helpRequest->requester_id,
@@ -194,9 +196,62 @@ class HelpRequestController extends Controller
             return $this->errorResponse('Help request not found.', [], 404);
         }
 
-        if (!in_array($helpRequest->status, ['active', 'confirmed'], true)
-            || (int) $helpRequest->volunteer_id !== (int) $request->user()->id) {
-            return $this->errorResponse('Only assigned active/confirmed requests can be completed.', [], 422);
+        if ((int) $helpRequest->volunteer_id !== (int) $request->user()->id) {
+            return $this->errorResponse('Only the assigned volunteer can complete this request.', [], 422);
+        }
+
+        if (!in_array($helpRequest->status, ['active', 'confirmed', 'pending_payment'], true)) {
+            return $this->errorResponse('Only active/confirmed requests can be completed.', [], 422);
+        }
+
+        if ($helpRequest->requiresOnlinePayment()) {
+            $helpRequest->loadMissing('payment');
+            $payment = $helpRequest->payment;
+
+            // Fallback: find payment that belongs to THIS request but wasn't linked via help_request_id.
+            // Only match payments with no help_request_id (unlinked) to avoid stealing from other requests.
+            if (!$payment) {
+                $payment = Payment::query()
+                    ->where('user_id', $helpRequest->requester_id)
+                    ->where('amount_cents', (int) $helpRequest->service_fee)
+                    ->whereNull('help_request_id')
+                    ->whereIn('status', ['paid', 'initiated', 'pending'])
+                    ->orderByDesc('id')
+                    ->first();
+
+                // Back-fill the link so future lookups work via the HasOne relation
+                if ($payment) {
+                    $payment->update(['help_request_id' => $helpRequest->id]);
+                    $helpRequest->setRelation('payment', $payment);
+                }
+            }
+
+            // Auto-refresh payment status from Paymob if not yet marked paid
+            if ($payment && !$payment->isPaid() && $payment->paymob_order_id) {
+                try {
+                    $paymobService = app(\App\Services\PaymobService::class);
+                    $payment = $paymobService->refreshPaymentStatus($payment);
+                } catch (\Throwable $e) {
+                    Log::warning('Paymob refresh during complete failed', [
+                        'payment_id' => $payment->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // If payment succeeded and help request is still pending_payment, auto-transition
+            if ($payment && $payment->isPaid() && $helpRequest->status === 'pending_payment') {
+                $helpRequest->status = 'active';
+                $helpRequest->cleared_at = $helpRequest->cleared_at ?? now();
+                $helpRequest->save();
+            }
+
+            $paymentStatus = strtolower((string) ($payment?->status ?? ''));
+            $isPaid = ($payment?->isPaid() === true) || $paymentStatus === 'paid';
+
+            if (!$isPaid) {
+                return $this->errorResponse('Payment is still pending. Ask the user to complete payment first.', [], 422);
+            }
         }
 
         $helpRequest->status = 'completed';
@@ -218,7 +273,7 @@ class HelpRequestController extends Controller
 
         $helpRequest->save();
 
-        $helpRequest->load(['requester', 'volunteer']);
+        $helpRequest->load(['requester', 'volunteer', 'payment']);
 
         Notification::create([
             'user_id' => $helpRequest->requester_id,
@@ -260,7 +315,7 @@ class HelpRequestController extends Controller
         if ($helpRequest->payment_method === 'cash') {
             $helpRequest->status = 'active';
             $helpRequest->save();
-            $helpRequest->load(['requester', 'volunteer']);
+            $helpRequest->load(['requester', 'volunteer', 'payment']);
 
             return $this->successResponse(
                 new HelpRequestResource($helpRequest),
@@ -281,7 +336,7 @@ class HelpRequestController extends Controller
         if ($amountCents <= 0) {
             $helpRequest->status = 'active';
             $helpRequest->save();
-            $helpRequest->load(['requester', 'volunteer']);
+            $helpRequest->load(['requester', 'volunteer', 'payment']);
 
             return $this->successResponse(
                 new HelpRequestResource($helpRequest),

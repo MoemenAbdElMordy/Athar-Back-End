@@ -11,7 +11,9 @@ use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
@@ -67,10 +69,10 @@ class AuthController extends Controller
         $name = $data['name'] ?? $data['full_name'] ?? 'User';
         $role = $data['role'] ?? 'user';
         $idDocumentPath = $request->hasFile('id_document')
-            ? $request->file('id_document')->store('volunteer-documents', 'public')
+            ? $this->storeUploadedFile($request->file('id_document'), 'volunteer-documents')
             : null;
         $certificationDocumentPath = ($request->file('certification_document') ?? $request->file('certification'))
-            ? ($request->file('certification_document') ?? $request->file('certification'))->store('volunteer-certifications', 'public')
+            ? $this->storeUploadedFile(($request->file('certification_document') ?? $request->file('certification')), 'volunteer-certifications')
             : null;
 
         $user = User::create([
@@ -235,5 +237,25 @@ class AuthController extends Controller
         }
 
         return mb_substr($userAgent, 0, 120);
+    }
+
+    private function storeUploadedFile(UploadedFile $file, string $directory): string
+    {
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+        $filename = (string) Str::uuid();
+
+        if ($extension !== '') {
+            $filename .= '.'.$extension;
+        }
+
+        $targetDirectory = storage_path('app/public/'.trim($directory, '/'));
+
+        if (!is_dir($targetDirectory)) {
+            mkdir($targetDirectory, 0755, true);
+        }
+
+        $file->move($targetDirectory, $filename);
+
+        return trim($directory, '/').'/'.$filename;
     }
 }

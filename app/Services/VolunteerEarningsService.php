@@ -11,8 +11,9 @@ class VolunteerEarningsService
     /**
      * Build the full Earnings tab payload for a volunteer.
      */
-    public function earnings(int $volunteerId): array
+    public function earnings(int $volunteerId, int $months = 6): array
     {
+        $months = max(1, min($months, 24));
         $feePct = (int) config('athar.platform_fee_percentage', 30);
 
         $totals = HelpRequest::query()
@@ -53,7 +54,7 @@ class VolunteerEarningsService
                 'title' => 'Athar Service Fee',
                 'description' => "Athar keeps {$feePct}% from each completed paid request.",
             ],
-            'monthly_net_earnings' => $this->monthlyNetEarnings($volunteerId),
+            'monthly_net_earnings' => $this->monthlyNetEarnings($volunteerId, $months),
         ];
     }
 

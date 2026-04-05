@@ -317,6 +317,66 @@
                                                   }
                                   },
                                   {
+                                      "name":  "Tutorials - List",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/tutorials?search=&category=&per_page=15",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "tutorials"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "search",
+                                                                                    "value":  ""
+                                                                                },
+                                                                                {
+                                                                                    "key":  "category",
+                                                                                    "value":  ""
+                                                                                },
+                                                                                {
+                                                                                    "key":  "per_page",
+                                                                                    "value":  "15"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Tutorials - Track View",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/tutorials/{{tutorial_id}}/view",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "tutorials",
+                                                                               "{{tutorial_id}}",
+                                                                               "view"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
                                       "name":  "Locations - List",
                                       "request":  {
                                                       "method":  "GET",
@@ -575,6 +635,40 @@
                                                                                 }
                                                                             ]
                                                               }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Flags - Create (Generic)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{user_token}}"
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{base_url}}/api/flags",
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "flags"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"flaggable_type\": \"location\",\n  \"flaggable_id\": 1,\n  \"reason\": \"spam\",\n  \"details\": \"optional\"\n}"
+                                                               }
                                                   }
                                   },
                                   {

@@ -18,12 +18,35 @@ class PaymobService
 
     public function __construct()
     {
-        $this->baseUrl = rtrim((string) config('paymob.base_url'), '/');
+        $configuredBaseUrl = rtrim((string) config('paymob.base_url'), '/');
+        $basePath = (string) (parse_url($configuredBaseUrl, PHP_URL_PATH) ?? '');
+
+        if (! Str::endsWith($basePath, '/api')) {
+            $configuredBaseUrl .= '/api';
+        }
+
+        $this->baseUrl = $configuredBaseUrl;
         $this->apiKey = (string) config('paymob.api_key');
         $this->cardIntegrationId = (int) config('paymob.card_integration_id');
         $this->walletIntegrationId = (int) config('paymob.wallet_integration_id');
         $this->iframeId = (string) config('paymob.iframe_id');
         $this->hmacSecret = (string) config('paymob.hmac_secret');
+
+        if ($this->apiKey === '') {
+            throw new \RuntimeException('Paymob API key is not configured. Please set PAYMOB_API_KEY.');
+        }
+
+        if ($this->cardIntegrationId <= 0) {
+            throw new \RuntimeException('Paymob card integration ID is not configured. Please set PAYMOB_CARD_INTEGRATION_ID.');
+        }
+
+        if ($this->walletIntegrationId <= 0) {
+            throw new \RuntimeException('Paymob wallet integration ID is not configured. Please set PAYMOB_WALLET_INTEGRATION_ID.');
+        }
+
+        if ($this->iframeId === '') {
+            throw new \RuntimeException('Paymob iframe ID is not configured. Please set PAYMOB_IFRAME_ID.');
+        }
     }
 
     // ─── 1. Authenticate ─────────────────────────────────────
@@ -350,9 +373,17 @@ class PaymobService
      * Process a Paymob transaction callback and update local payment.
      *
      * @param  array $payload  Full callback payload
+     * @param  int|null $localPaymentId Fallback local payment id for trusted app confirmations
+     * @param  int|null $actorUserId Authenticated actor id (used for fallback ownership checks)
+     * @param  bool $actorIsAdmin Whether the authenticated actor is an admin
      * @return Payment|null  The updated payment, or null if not found
      */
-    public function handleTransactionCallback(array $payload): ?Payment
+    public function handleTransactionCallback(
+        array $payload,
+        ?int $localPaymentId = null,
+        ?int $actorUserId = null,
+        bool $actorIsAdmin = false,
+    ): ?Payment
     {
         $obj = $payload['obj'] ?? $payload;
 
@@ -373,11 +404,20 @@ class PaymobService
                 ->first();
         }
 
+        if (! $payment && $localPaymentId !== null) {
+            $candidate = Payment::query()->find($localPaymentId);
+
+            if ($candidate && ($actorIsAdmin || ((int) $candidate->user_id === (int) $actorUserId))) {
+                $payment = $candidate;
+            }
+        }
+
         if (! $payment) {
             Log::warning('Paymob callback: no matching payment found', [
                 'paymob_order_id' => $paymobOrderId,
                 'merchant_order_id' => $merchantOrderId,
                 'transaction_id' => $transactionId,
+                'local_payment_id' => $localPaymentId,
             ]);
             return null;
         }
@@ -460,6 +500,21 @@ class PaymobService
                 'source' => 'status_refresh',
                 'paymob' => $latest,
             ]);
+
+            // Auto-confirm linked help request when payment succeeds (mirrors handleTransactionCallback)
+            if ($payment->help_request_id) {
+                $helpRequest = $payment->helpRequest;
+                if ($helpRequest && $helpRequest->status === 'pending_payment') {
+                    $helpRequest->update([
+                        'status' => 'active',
+                        'cleared_at' => now(),
+                    ]);
+                    Log::info('Help request auto-confirmed after payment refresh', [
+                        'help_request_id' => $helpRequest->id,
+                        'payment_id' => $payment->id,
+                    ]);
+                }
+            }
         } else {
             $payment->markAsFailed($transactionId, [
                 'source' => 'status_refresh',

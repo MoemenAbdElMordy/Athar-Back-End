@@ -12,7 +12,8 @@ use App\Models\HelpRequest;
 use App\Models\Review;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 
 class ProfileController extends Controller
 {
@@ -32,10 +33,14 @@ class ProfileController extends Controller
         $user = $request->user();
 
         if ($user->profile_photo_path) {
-            Storage::disk('public')->delete($user->profile_photo_path);
+            $existingPath = storage_path('app/public/'.$user->profile_photo_path);
+
+            if (is_file($existingPath)) {
+                unlink($existingPath);
+            }
         }
 
-        $user->profile_photo_path = $request->file('photo')->store('profile-photos', 'public');
+        $user->profile_photo_path = $this->storeUploadedFile($request->file('photo'), 'profile-photos');
         $user->save();
 
         return $this->successResponse(new UserResource($user));
@@ -53,5 +58,25 @@ class ProfileController extends Controller
                 ->where('status', 'completed')
                 ->count(),
         ]);
+    }
+
+    private function storeUploadedFile(UploadedFile $file, string $directory): string
+    {
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+        $filename = (string) Str::uuid();
+
+        if ($extension !== '') {
+            $filename .= '.'.$extension;
+        }
+
+        $targetDirectory = storage_path('app/public/'.trim($directory, '/'));
+
+        if (!is_dir($targetDirectory)) {
+            mkdir($targetDirectory, 0755, true);
+        }
+
+        $file->move($targetDirectory, $filename);
+
+        return trim($directory, '/').'/'.$filename;
     }
 }
